@@ -15,12 +15,12 @@ public:
   auto it=textures.find(id);if(it!=textures.end())return it->second;
   if(!renderer)return nullptr;
   std::string resolved=path;
-  if(!SDL_GetPathInfo(resolved.c_str(),nullptr)){if(char*base=SDL_GetBasePath()){resolved=std::string(base)+path;SDL_free(base);}}
+  if(!SDL_GetPathInfo(resolved.c_str(),nullptr)){if(const char*base=SDL_GetBasePath()){resolved=std::string(base)+path;}}
   SDL_Surface*s=nullptr;
   auto dot=resolved.find_last_of('.');
   std::string ext=dot==std::string::npos?"":resolved.substr(dot);
   std::transform(ext.begin(),ext.end(),ext.begin(),[](unsigned char ch){return (char)std::tolower(ch);});
-  if(ext==".png")s=SDL_LoadPNG(resolved.c_str());else s=SDL_LoadBMP(resolved.c_str());
+  // SDL core build uses BMP strips; PNG source sheets are preprocessed into BMP strips by the asset tool.\n  if(ext==".bmp")s=SDL_LoadBMP(resolved.c_str());
   if(!s)return nullptr;
   // BMP strips can use magenta as a transparency key; PNG keeps native alpha.
   if(ext!=".png")SDL_SetSurfaceColorKey(s,true,SDL_MapSurfaceRGB(s,255,0,255));
