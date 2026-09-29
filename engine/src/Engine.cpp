@@ -84,8 +84,30 @@ void Engine::updateCombat(float dt){
  attackTimer=std::max(0.f,attackTimer-dt);hurtTimer=std::max(0.f,hurtTimer-dt);
  for(auto&s:shots)if(s.alive){s.x+=s.vx*dt;s.life-=dt;if(s.life<=0)s.alive=false;for(auto&e:enemies)if(e.alive&&overlapE(s.x,s.y,14,10,e)){e.hp--;s.alive=false;if(e.hp<=0)e.alive=false;break;}}
 }
+void Engine::applyStreamCommand(const StreamCommand& c){
+ auto active=[&](){int n=0;for(const auto&e:enemies)if(e.alive)n++;return n;};
+ auto spawn=[&](int count,const std::string&id,const std::string&viewer){
+  count=std::clamp(count,1,10);
+  for(int i=0;i<count&&active()<28;i++){
+   EnemyActor a;int found=-1;
+   if(!id.empty())for(int z=0;z<(int)ENEMIES.size();z++)if(ENEMIES[z].id==id){found=z;break;}
+   a.defIndex=found>=0?found:8+(i%8);a.x=hero.x+280+i*58;a.y=hero.y-80-(i%3)*30;
+   a.hp=a.def().hp;a.vx=-a.def().speed;a.viewer=viewer;enemies.push_back(a);
+  }
+ };
+ if(c.command=="spawn_enemy")spawn(c.value>0?c.value:1,c.argument,c.viewer);
+ else if(c.command=="spawn_five")spawn(5,c.argument,c.viewer);
+ else if(c.command=="mega")spawn(10,c.argument,c.viewer);
+ else if(c.command=="heal")hero.hp=std::min(hero.def().hp,hero.hp+std::max(1,c.value));
+ else if(c.command=="damage"){hero.hp-=std::max(1,c.value);if(hero.hp<=0)loadStage(stageIndex);}
+ else if(c.command=="hero"){
+  if(c.argument=="mario")hero.heroIndex=0;else if(c.argument=="luigi")hero.heroIndex=1;else if(c.argument=="bowser")hero.heroIndex=2;
+  hero.hp=std::min(hero.hp,hero.def().hp);
+ }
+ else if(c.command=="restart")loadStage(stageIndex);
+}
 void Engine::update(float dt){
- if(playMode){updateHero(dt);updateEnemies(dt);updateCombat(dt);}
+ for(const auto&command:streamerBot.poll(dt))applyStreamCommand(command);\n if(playMode){updateHero(dt);updateEnemies(dt);updateCombat(dt);}
  else{const auto*k=SDL_GetKeyboardState(nullptr);if(k[SDL_SCANCODE_A]||k[SDL_SCANCODE_LEFT])cameraX=std::max(0.f,cameraX-500*dt);if(k[SDL_SCANCODE_D]||k[SDL_SCANCODE_RIGHT])cameraX=std::min(std::max(0.f,(float)world.width-1280),cameraX+500*dt);}
 }
 static std::string imported(const std::string& p){return "assets/imported/"+p;}
