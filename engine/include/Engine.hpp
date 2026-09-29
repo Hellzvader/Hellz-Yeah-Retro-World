@@ -10,6 +10,7 @@
 #include "StreamerBotBridge.hpp"
 #include "PeachRescue.hpp"
 #include "SaveData.hpp"
+#include "Powerups.hpp"
 
 struct Projectile { float x{},y{},vx{},life{}; bool alive{true}; };
 
@@ -27,11 +28,12 @@ private:
  bool paused{false},ending{false};
  bool running{true},playMode{true};
  World world; HeroActor hero; std::vector<EnemyActor> enemies; std::vector<Projectile> shots;
- Campaign campaign; int stageIndex{0}; float cameraX{},hurtTimer{},attackTimer{},visualTime{};
+ Campaign campaign; int stageIndex{0}; float cameraX{},hurtTimer{},attackTimer{},visualTime{},starTimer{};
+ std::vector<Powerup> powerups; bool firePower{};
  ObjectType brush{ObjectType::Ground};
 
  void loadStage(int index); void event(const SDL_Event& e); void update(float dt);
- void updateHero(float dt); void updateEnemies(float dt); void updateCombat(float dt);
+ void updateHero(float dt); void updateEnemies(float dt); void updateCombat(float dt); void updatePowerups(float dt);
  void draw(); void drawEditor(); void drawGame(); void placeObject(float x,float y);
  void drawHero(); void drawEnemy(const EnemyActor& e); bool drawWorldObject(const WorldObject& o);
  void fire(); void smash(); void applyStreamCommand(const StreamCommand& command);
