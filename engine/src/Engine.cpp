@@ -11,7 +11,7 @@ bool Engine::init(){
  if(!SDL_Init(SDL_INIT_VIDEO|SDL_INIT_GAMEPAD))return false;
  window=SDL_CreateWindow("Hellz Yeah Retro World - Mario + Bowser Rescue",1280,720,SDL_WINDOW_RESIZABLE);
  if(!window)return false; renderer=SDL_CreateRenderer(window,nullptr);if(!renderer)return false;
- SDL_SetRenderVSync(renderer,1);loadStage(0);return true;
+ sprites.setRenderer(renderer);gamepads.scan();SDL_SetRenderVSync(renderer,1);loadStage(0);return true;
 }
 void Engine::shutdown(){if(renderer)SDL_DestroyRenderer(renderer);if(window)SDL_DestroyWindow(window);SDL_Quit();}
 void Engine::loadStage(int i){
@@ -31,12 +31,10 @@ void Engine::smash(){
 }
 void Engine::event(const SDL_Event&e){
  if(e.type==SDL_EVENT_QUIT)running=false;
- if(e.type==SDL_EVENT_KEY_DOWN)switch(e.key.key){
-  case SDLK_ESCAPE:if(!playMode)playMode=true;else running=false;break;
-  case SDLK_F5:playMode=!playMode;break;
-  case SDLK_Q:hero.switchPrev();break;case SDLK_E:hero.switchNext();break;
-  case SDLK_X:fire();break;case SDLK_C:smash();break;\n  case SDLK_J:{int n=(int)enemies.size()%4+1;for(int z=0;z<n;z++){EnemyActor a;a.defIndex=8+(z%8);a.x=hero.x+260+z*60;a.y=hero.y-80;a.hp=a.def().hp;a.vx=-a.def().speed;enemies.push_back(a);}break;}\n  case SDLK_K:for(int z=0;z<5;z++){EnemyActor a;a.defIndex=8+(z%8);a.x=hero.x+260+z*60;a.y=hero.y-80-(z%2)*35;a.hp=a.def().hp;a.vx=-a.def().speed;enemies.push_back(a);}break;\n  case SDLK_L:for(int z=0;z<10;z++){EnemyActor a;a.defIndex=8+(z%8);a.x=hero.x+240+z*55;a.y=hero.y-90-(z%3)*35;a.hp=a.def().hp;a.vx=-a.def().speed;enemies.push_back(a);}break;
-  case SDLK_R:loadStage(stageIndex);break;
+ // Keyboard/mouse are editor tools only. Gameplay is controller-only.
+ if(!playMode&&e.type==SDL_EVENT_KEY_DOWN)switch(e.key.key){
+  case SDLK_ESCAPE:playMode=true;break;
+  case SDLK_F5:playMode=true;break;
   case SDLK_1:brush=ObjectType::Ground;break;case SDLK_2:brush=ObjectType::Platform;break;
   case SDLK_3:brush=ObjectType::Enemy;break;case SDLK_4:brush=ObjectType::Coin;break;
   case SDLK_5:brush=ObjectType::Barrel;break;case SDLK_6:brush=ObjectType::Vine;break;
@@ -51,12 +49,16 @@ void Engine::placeObject(float x,float y){
  world.objects.push_back(o);
 }
 void Engine::updateHero(float dt){
- const bool L=SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_A]||SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_LEFT];
- const bool R=SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_D]||SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_RIGHT];
- float d=(R?1.f:0.f)-(L?1.f:0.f);if(d)hero.facing=d;
+ float d=(pad.right?1.f:0.f)-(pad.left?1.f:0.f);if(d)hero.facing=d;
  hero.vx=d*hero.def().speed;hero.vy+=1450*dt;
- const bool jump=SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_SPACE]||SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_Z];
- if(jump&&hero.grounded){hero.vy=-hero.def().jump;hero.grounded=false;}
+ if(pad.jump&&!previousPad.jump&&hero.grounded){hero.vy=-hero.def().jump;hero.grounded=false;}
+ if(pad.attack&&!previousPad.attack)fire();
+ if(pad.special&&!previousPad.special)smash();
+ // Shoulder buttons switch the active hero.
+ if(gamepads.pads[0]){
+  if(SDL_GetGamepadButton(gamepads.pads[0],SDL_GAMEPAD_BUTTON_LEFT_SHOULDER)&&!SDL_GetGamepadButton(gamepads.pads[0],SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER))hero.switchPrev();
+  if(SDL_GetGamepadButton(gamepads.pads[0],SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER)&&!SDL_GetGamepadButton(gamepads.pads[0],SDL_GAMEPAD_BUTTON_LEFT_SHOULDER))hero.switchNext();
+ }
  float oldY=hero.y;hero.x+=hero.vx*dt;hero.y+=hero.vy*dt;hero.grounded=false;
  for(const auto&o:world.objects)if(o.type==ObjectType::Ground||o.type==ObjectType::Platform)
   if(overlap(hero.x,hero.y,34,48,o.bounds)&&hero.vy>=0&&oldY+48<=o.bounds.y+6){hero.y=o.bounds.y-48;hero.vy=0;hero.grounded=true;}
