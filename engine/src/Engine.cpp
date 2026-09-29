@@ -19,6 +19,8 @@ void Engine::loadStage(int i){
  auto b=buildStage(stageIndex);world=std::move(b.world);enemies=std::move(b.enemies);
  hero.x=b.spawnX;hero.y=b.spawnY;hero.vx=hero.vy=0;hero.hp=hero.def().hp;shots.clear();powerups.clear();firePower=false;starTimer=0;cameraX=0;
  traversal=TraversalState{};traversal.checkpointX=b.spawnX;traversal.checkpointY=b.spawnY;
+ barrels.clear();carriedBarrel=-1;
+ for(const auto&o:world.objects)if(o.type==ObjectType::Barrel)barrels.push_back({o.bounds.x,o.bounds.y,0,0,false,true});
  // Seed useful pickups through every stage so power-ups are part of normal play.
  powerups.push_back({PowerupType::Mushroom,b.spawnX+360,520,true});
  powerups.push_back({PowerupType::FireFlower,b.spawnX+760,500,true});
@@ -82,6 +84,10 @@ void Engine::updateHero(float dt){
  hero.vy=std::min(hero.vy+gravity*dt,hero.heroIndex==2?1050.f:900.f);
  if(pad.attack&&!previousPad.attack)fire();
  if(pad.special&&!previousPad.special)smash();
+ if(pad.interact&&!previousPad.interact){
+  if(carriedBarrel>=0&&carriedBarrel<(int)barrels.size()){throwBarrel(barrels[carriedBarrel],hero);carriedBarrel=-1;}
+  else{int n=nearestBarrel(barrels,hero);if(n>=0){barrels[n].carried=true;carriedBarrel=n;}}
+ }
  if(pad.prevHero&&!previousPad.prevHero){hero.switchPrev();saveData.selectedHero=hero.heroIndex;}
  if(pad.nextHero&&!previousPad.nextHero){hero.switchNext();saveData.selectedHero=hero.heroIndex;}
  float oldX=hero.x,oldY=hero.y;
@@ -109,6 +115,15 @@ void Engine::updateHero(float dt){
   }
  }
  cameraX=std::clamp(hero.x-450.f,0.f,std::max(0.f,(float)world.width-1280));
+}
+void Engine::updateBarrelGameplay(float dt){
+ updateBarrels(barrels,hero,dt);
+ for(auto&b:barrels)if(b.active&&!b.carried&&std::abs(b.vx)>120.f){
+  for(auto&e:enemies)if(e.alive&&overlapE(b.x,b.y,42,50,e)){
+   e.hp-=2;b.active=false;b.vx=0;if(e.hp<=0)e.alive=false;break;
+  }
+ }
+ if(carriedBarrel>=0&&(carriedBarrel>=(int)barrels.size()||!barrels[carriedBarrel].active))carriedBarrel=-1;
 }
 void Engine::updatePowerups(float dt){
  starTimer=std::max(0.f,starTimer-dt);
@@ -178,7 +193,7 @@ void Engine::update(float dt){
  if(pad.start&&!previousPad.start)paused=!paused;
  if(paused||ending)return;
  for(const auto&command:streamerBot.poll(dt))applyStreamCommand(command);
- if(playMode){updateHero(dt);updateStageMechanics(dt);updatePowerups(dt);updateEnemies(dt);updateCombat(dt);}
+ if(playMode){updateHero(dt);updateStageMechanics(dt);updateBarrelGameplay(dt);updatePowerups(dt);updateEnemies(dt);updateCombat(dt);}
  else{const auto*k=SDL_GetKeyboardState(nullptr);if(k[SDL_SCANCODE_A]||k[SDL_SCANCODE_LEFT])cameraX=std::max(0.f,cameraX-500*dt);if(k[SDL_SCANCODE_D]||k[SDL_SCANCODE_RIGHT])cameraX=std::min(std::max(0.f,(float)world.width-1280),cameraX+500*dt);}
 }
 static std::string imported(const std::string& p){return "assets/imported/"+p;}
@@ -227,6 +242,7 @@ void Engine::drawGame(){
   SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,o.bounds.x-cameraX,o.bounds.y,o.bounds.w,o.bounds.h);
   SDL_SetRenderDrawColor(renderer,35,20,45,255);rect(renderer,o.bounds.x-cameraX+4,o.bounds.y+4,std::max(2.f,o.bounds.w*.35f),std::max(2.f,o.bounds.h*.35f));
  }
+ for(const auto&b:barrels)if(b.active){SpriteClip bc{32,32,1,1};if(!sprites.draw("barrel_live",imported("props/barrel.bmp"),bc,visualTime,b.x-cameraX,b.y,42,50)){SDL_SetRenderDrawColor(renderer,150,92,45,255);rect(renderer,b.x-cameraX,b.y,42,50);}}
  for(const auto&p:powerups)if(p.active){
   const char*file=p.type==PowerupType::Mushroom?"mushroom.bmp":p.type==PowerupType::FireFlower?"fireflower.bmp":p.type==PowerupType::Star?"star.bmp":p.type==PowerupType::Heart?"heart.bmp":"banana.bmp";
   SpriteClip pc{32,32,1,1};if(!sprites.draw(std::string("power_")+file,imported(std::string("items/")+file),pc,visualTime,p.x-cameraX,p.y,32,32)){SDL_SetRenderDrawColor(renderer,255,215,40,255);rect(renderer,p.x-cameraX,p.y,30,30);}
