@@ -2,7 +2,14 @@
 #include "World.hpp"
 #include "Campaign.hpp"
 #include "Actor.hpp"
-#include <vector>\n#include <string>\n#include <stdexcept>\n\ninline int enemyIndexById(const std::string&id){\n for(int i=0;i<(int)ENEMIES.size();++i)if(ENEMIES[i].id==id)return i;\n throw std::runtime_error("Unknown enemy id: "+id);\n}
+#include <vector>
+#include <string>
+#include <stdexcept>
+
+inline int enemyIndexById(const std::string&id){
+ for(int i=0;i<(int)ENEMIES.size();++i)if(ENEMIES[i].id==id)return i;
+ throw std::runtime_error("Unknown enemy id: "+id);
+}
 
 struct LevelBuild { World world; std::vector<EnemyActor> enemies; float spawnX=120,spawnY=500; };
 
