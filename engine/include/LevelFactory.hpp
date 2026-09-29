@@ -2,7 +2,7 @@
 #include "World.hpp"
 #include "Campaign.hpp"
 #include "Actor.hpp"
-#include <vector>
+#include <vector>\n#include <string>\n#include <stdexcept>\n\ninline int enemyIndexById(const std::string&id){\n for(int i=0;i<(int)ENEMIES.size();++i)if(ENEMIES[i].id==id)return i;\n throw std::runtime_error("Unknown enemy id: "+id);\n}
 
 struct LevelBuild { World world; std::vector<EnemyActor> enemies; float spawnX=120,spawnY=500; };
 
@@ -23,9 +23,19 @@ inline LevelBuild buildStage(int stage){
  }
  b.world.objects.push_back({ObjectType::Exit,{(float)b.world.width-150,500,64,110},"Exit"});
  if(stage==14)b.world.objects.push_back({ObjectType::Peach,{(float)b.world.width-250,515,40,70},"Peach"});
+ static const std::vector<std::string> kongRegular={
+  "kritter","klump","necky","zinger","gnawty","klaptrap","army","mini_necky",
+  "kaboing","klampon","kruncha","kutlass","kannon","klobber","neek","click_clack",
+  "flitter","spiny_dkc2","screech"
+ };
  for(int i=0;i<12+stage;i++){
-  EnemyActor e;e.defIndex=8+(i+stage)%8;e.x=650+i*210;e.y=540;e.hp=e.def().hp;e.vx=-e.def().speed;b.enemies.push_back(e);
+  EnemyActor e;e.defIndex=enemyIndexById(kongRegular[(i+stage)%kongRegular.size()]);
+  e.x=650+i*210;e.y=540;e.hp=e.def().hp;e.vx=-e.def().speed;b.enemies.push_back(e);
  }
- if(stage%3==2){EnemyActor boss;boss.defIndex=16;boss.x=b.world.width-600;boss.y=520;boss.hp=boss.def().hp;boss.vx=-boss.def().speed;b.enemies.push_back(boss);}
+ if(stage%3==2){
+  static const char* bosses[]={"dk_guardian","king_zing","kudgel"};
+  EnemyActor boss;boss.defIndex=enemyIndexById(bosses[(stage/3)%3]);
+  boss.x=b.world.width-600;boss.y=500;boss.hp=boss.def().hp;boss.vx=-boss.def().speed;b.enemies.push_back(boss);
+ }
  return b;
 }
