@@ -1,90 +1,103 @@
 #include "Engine.hpp"
 #include <algorithm>
 #include <cmath>
+#include <string>
 
-static bool overlap(float x,float y,float w,float h,const Rect& b){
- return x<b.x+b.w && b.x<x+w && y<b.y+b.h && b.y<y+h;
-}
-static void rect(SDL_Renderer* r,float x,float y,float w,float h){
- SDL_FRect q{x,y,w,h}; SDL_RenderFillRect(r,&q);
-}
+static bool overlap(float x,float y,float w,float h,const Rect& b){return x<b.x+b.w&&b.x<x+w&&y<b.y+b.h&&b.y<y+h;}
+static bool overlapE(float x,float y,float w,float h,const EnemyActor&e){return x<e.x+38&&e.x<x+w&&y<e.y+42&&e.y<y+h;}
+static void rect(SDL_Renderer*r,float x,float y,float w,float h){SDL_FRect q{x,y,w,h};SDL_RenderFillRect(r,&q);}
+
 bool Engine::init(){
- if(!SDL_Init(SDL_INIT_VIDEO|SDL_INIT_GAMEPAD)) return false;
- window=SDL_CreateWindow("Hellz Yeah Retro Engine",1280,720,SDL_WINDOW_RESIZABLE);
- if(!window) return false;
- renderer=SDL_CreateRenderer(window,nullptr);
- if(!renderer) return false;
- SDL_SetRenderVSync(renderer,1);
- world.makeDemo();
- return true;
+ if(!SDL_Init(SDL_INIT_VIDEO|SDL_INIT_GAMEPAD))return false;
+ window=SDL_CreateWindow("Hellz Yeah Retro World - Mario + Bowser Rescue",1280,720,SDL_WINDOW_RESIZABLE);
+ if(!window)return false; renderer=SDL_CreateRenderer(window,nullptr);if(!renderer)return false;
+ SDL_SetRenderVSync(renderer,1);loadStage(0);return true;
 }
-void Engine::shutdown(){ if(renderer)SDL_DestroyRenderer(renderer); if(window)SDL_DestroyWindow(window); SDL_Quit(); }
-void Engine::event(const SDL_Event& e){
- if(e.type==SDL_EVENT_QUIT) running=false;
- if(e.type==SDL_EVENT_KEY_DOWN){
-  switch(e.key.key){
-   case SDLK_ESCAPE: if(playMode) playMode=false; else running=false; break;
-   case SDLK_F5: playMode=!playMode; if(playMode){playerX=120;playerY=520;vx=vy=0;} break;
-   case SDLK_1: brush=ObjectType::Ground;break; case SDLK_2:brush=ObjectType::Platform;break;
-   case SDLK_3:brush=ObjectType::Enemy;break; case SDLK_4:brush=ObjectType::Coin;break;
-   case SDLK_5:brush=ObjectType::Barrel;break; case SDLK_6:brush=ObjectType::Vine;break;
-   case SDLK_7:brush=ObjectType::Exit;break;
-   case SDLK_F2: world.save("level1.hyrworld");break;
-  }
+void Engine::shutdown(){if(renderer)SDL_DestroyRenderer(renderer);if(window)SDL_DestroyWindow(window);SDL_Quit();}
+void Engine::loadStage(int i){
+ stageIndex=(i+(int)campaign.stages.size())%campaign.stages.size();
+ auto b=buildStage(stageIndex);world=std::move(b.world);enemies=std::move(b.enemies);
+ hero.x=b.spawnX;hero.y=b.spawnY;hero.vx=hero.vy=0;hero.hp=hero.def().hp;shots.clear();cameraX=0;
+ std::string title="Hellz Yeah Retro World - "+campaign.stages[stageIndex].title+" - "+hero.def().name;
+ SDL_SetWindowTitle(window,title.c_str());
+}
+void Engine::fire(){
+ if(!hero.def().fire||attackTimer>0)return;
+ shots.push_back({hero.x+(hero.facing>0?34:-12),hero.y+18,hero.facing*520,1.5f,true});attackTimer=.28f;
+}
+void Engine::smash(){
+ if(!hero.def().smash||attackTimer>0)return;attackTimer=.5f;
+ for(auto&e:enemies)if(e.alive&&std::abs((e.x+19)-(hero.x+17))<95&&std::abs(e.y-hero.y)<70){e.hp-=3;if(e.hp<=0)e.alive=false;}
+}
+void Engine::event(const SDL_Event&e){
+ if(e.type==SDL_EVENT_QUIT)running=false;
+ if(e.type==SDL_EVENT_KEY_DOWN)switch(e.key.key){
+  case SDLK_ESCAPE:if(!playMode)playMode=true;else running=false;break;
+  case SDLK_F5:playMode=!playMode;break;
+  case SDLK_Q:hero.switchPrev();break;case SDLK_E:hero.switchNext();break;
+  case SDLK_X:case SDLK_J:fire();break;case SDLK_C:case SDLK_K:smash();break;
+  case SDLK_R:loadStage(stageIndex);break;
+  case SDLK_1:brush=ObjectType::Ground;break;case SDLK_2:brush=ObjectType::Platform;break;
+  case SDLK_3:brush=ObjectType::Enemy;break;case SDLK_4:brush=ObjectType::Coin;break;
+  case SDLK_5:brush=ObjectType::Barrel;break;case SDLK_6:brush=ObjectType::Vine;break;
+  case SDLK_7:brush=ObjectType::Exit;break;case SDLK_F2:world.save("level1.hyrworld");break;
  }
- if(!playMode && e.type==SDL_EVENT_MOUSE_BUTTON_DOWN && e.button.button==SDL_BUTTON_LEFT){
-  float x=e.button.x+cameraX,y=e.button.y; placeObject(x,y);
- }
+ if(!playMode&&e.type==SDL_EVENT_MOUSE_BUTTON_DOWN&&e.button.button==SDL_BUTTON_LEFT)placeObject(e.button.x+cameraX,e.button.y);
 }
 void Engine::placeObject(float x,float y){
- WorldObject o; o.type=brush; o.bounds={std::floor(x/16)*16,std::floor(y/16)*16,48,48}; o.name="Object";
- if(brush==ObjectType::Ground||brush==ObjectType::Platform)o.bounds={std::floor(x/16)*16,std::floor(y/16)*16,96,24};
- if(brush==ObjectType::Vine)o.bounds={std::floor(x/16)*16,std::floor(y/16)*16,20,160};
- if(brush==ObjectType::Exit)o.bounds={std::floor(x/16)*16,std::floor(y/16)*16,64,110};
+ WorldObject o{brush,{std::floor(x/16)*16,std::floor(y/16)*16,48,48},"Object"};
+ if(brush==ObjectType::Ground||brush==ObjectType::Platform)o.bounds.w=96,o.bounds.h=24;
+ if(brush==ObjectType::Vine)o.bounds.w=20,o.bounds.h=160;if(brush==ObjectType::Exit)o.bounds.w=64,o.bounds.h=110;
  world.objects.push_back(o);
 }
-void Engine::update(float dt){
- const bool left=SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_A]||SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_LEFT];
- const bool right=SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_D]||SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_RIGHT];
- if(playMode){
-  vx=(right-left)*230.0f; vy+=1450*dt;
-  if((SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_SPACE]||SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_Z])&&grounded){vy=-530;grounded=false;}
-  playerX+=vx*dt; playerY+=vy*dt; grounded=false;
-  for(const auto&o:world.objects) if(o.type==ObjectType::Ground||o.type==ObjectType::Platform){
-   if(overlap(playerX,playerY,34,48,o.bounds)&&vy>=0&&playerY+48-vy*dt<=o.bounds.y+4){playerY=o.bounds.y-48;vy=0;grounded=true;}
-  }
-  if(playerY>800){playerX=120;playerY=500;vy=0;}
-  cameraX=std::clamp(playerX-450.0f,0.0f,(float)world.width-1280);
- } else {
-  if(left)cameraX=std::max(0.0f,cameraX-500*dt);
-  if(right)cameraX=std::min((float)world.width-1280,cameraX+500*dt);
+void Engine::updateHero(float dt){
+ const bool L=SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_A]||SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_LEFT];
+ const bool R=SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_D]||SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_RIGHT];
+ float d=(R?1.f:0.f)-(L?1.f:0.f);if(d)hero.facing=d;
+ hero.vx=d*hero.def().speed;hero.vy+=1450*dt;
+ const bool jump=SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_SPACE]||SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_Z];
+ if(jump&&hero.grounded){hero.vy=-hero.def().jump;hero.grounded=false;}
+ float oldY=hero.y;hero.x+=hero.vx*dt;hero.y+=hero.vy*dt;hero.grounded=false;
+ for(const auto&o:world.objects)if(o.type==ObjectType::Ground||o.type==ObjectType::Platform)
+  if(overlap(hero.x,hero.y,34,48,o.bounds)&&hero.vy>=0&&oldY+48<=o.bounds.y+6){hero.y=o.bounds.y-48;hero.vy=0;hero.grounded=true;}
+ if(hero.y>800)loadStage(stageIndex);
+ for(const auto&o:world.objects)if(o.type==ObjectType::Exit&&overlap(hero.x,hero.y,34,48,o.bounds)){
+  bool bossAlive=false;for(auto&e:enemies)if(e.alive&&e.def().boss)bossAlive=true;if(!bossAlive)loadStage(stageIndex+1);
  }
+ cameraX=std::clamp(hero.x-450.f,0.f,std::max(0.f,(float)world.width-1280));
+}
+void Engine::updateEnemies(float dt){
+ for(auto&e:enemies)if(e.alive){
+  e.vy+=e.def().flying?0:1300*dt;e.x+=e.vx*dt;e.y+=e.vy*dt;
+  if(e.def().flying)e.y+=std::sin(SDL_GetTicks()/350.0+e.x*.01)*25*dt;
+  else for(const auto&o:world.objects)if((o.type==ObjectType::Ground||o.type==ObjectType::Platform)&&overlap(e.x,e.y,38,42,o.bounds)&&e.vy>=0){e.y=o.bounds.y-42;e.vy=0;}
+  if(e.x<40||e.x>world.width-40)e.vx=-e.vx;
+  if(overlapE(hero.x,hero.y,34,48,e)){
+   if(hero.vy>80&&hero.y+43<e.y+16){e.hp-=hero.def().smash?2:1;hero.vy=-330;if(e.hp<=0)e.alive=false;}
+   else if(hurtTimer<=0){hero.hp--;hurtTimer=1.2f;hero.vy=-330;if(hero.hp<=0)loadStage(stageIndex);}
+  }
+ }
+}
+void Engine::updateCombat(float dt){
+ attackTimer=std::max(0.f,attackTimer-dt);hurtTimer=std::max(0.f,hurtTimer-dt);
+ for(auto&s:shots)if(s.alive){s.x+=s.vx*dt;s.life-=dt;if(s.life<=0)s.alive=false;for(auto&e:enemies)if(e.alive&&overlapE(s.x,s.y,14,10,e)){e.hp--;s.alive=false;if(e.hp<=0)e.alive=false;break;}}
+}
+void Engine::update(float dt){
+ if(playMode){updateHero(dt);updateEnemies(dt);updateCombat(dt);}
+ else{const auto*k=SDL_GetKeyboardState(nullptr);if(k[SDL_SCANCODE_A]||k[SDL_SCANCODE_LEFT])cameraX=std::max(0.f,cameraX-500*dt);if(k[SDL_SCANCODE_D]||k[SDL_SCANCODE_RIGHT])cameraX=std::min(std::max(0.f,(float)world.width-1280),cameraX+500*dt);}
 }
 void Engine::drawGame(){
- SDL_SetRenderDrawColor(renderer,16,28,48,255); SDL_RenderClear(renderer);
- for(const auto&o:world.objects){
-  switch(o.type){
-   case ObjectType::Ground:case ObjectType::Platform:SDL_SetRenderDrawColor(renderer,45,145,65,255);break;
-   case ObjectType::Enemy:SDL_SetRenderDrawColor(renderer,190,70,45,255);break;
-   case ObjectType::Coin:SDL_SetRenderDrawColor(renderer,250,210,40,255);break;
-   case ObjectType::Barrel:SDL_SetRenderDrawColor(renderer,135,75,35,255);break;
-   case ObjectType::Vine:SDL_SetRenderDrawColor(renderer,30,180,65,255);break;
-   case ObjectType::Exit:SDL_SetRenderDrawColor(renderer,70,180,235,255);break;
-   default:SDL_SetRenderDrawColor(renderer,220,220,220,255);break;
-  } rect(renderer,o.bounds.x-cameraX,o.bounds.y,o.bounds.w,o.bounds.h);
- }
- SDL_SetRenderDrawColor(renderer,235,55,45,255);rect(renderer,playerX-cameraX,playerY,34,48);
+ SDL_SetRenderDrawColor(renderer,15,27,48,255);SDL_RenderClear(renderer);
+ for(const auto&o:world.objects){switch(o.type){case ObjectType::Ground:case ObjectType::Platform:SDL_SetRenderDrawColor(renderer,45,145,65,255);break;case ObjectType::Coin:SDL_SetRenderDrawColor(renderer,250,210,40,255);break;case ObjectType::Barrel:SDL_SetRenderDrawColor(renderer,135,75,35,255);break;case ObjectType::Vine:SDL_SetRenderDrawColor(renderer,30,180,65,255);break;case ObjectType::Exit:SDL_SetRenderDrawColor(renderer,70,180,235,255);break;default:SDL_SetRenderDrawColor(renderer,120,120,120,255);}rect(renderer,o.bounds.x-cameraX,o.bounds.y,o.bounds.w,o.bounds.h);}
+ for(const auto&e:enemies)if(e.alive){if(e.def().boss)SDL_SetRenderDrawColor(renderer,160,50,180,255);else if(e.def().family==EnemyFamily::Kong)SDL_SetRenderDrawColor(renderer,170,90,35,255);else SDL_SetRenderDrawColor(renderer,190,60,45,255);rect(renderer,e.x-cameraX,e.y,e.def().boss?64:38,e.def().boss?64:42);}
+ SDL_SetRenderDrawColor(renderer,255,120,35,255);for(const auto&s:shots)if(s.alive)rect(renderer,s.x-cameraX,s.y,14,10);
+ if(hero.heroIndex==0)SDL_SetRenderDrawColor(renderer,235,45,40,255);else if(hero.heroIndex==1)SDL_SetRenderDrawColor(renderer,40,200,70,255);else SDL_SetRenderDrawColor(renderer,210,110,25,255);
+ rect(renderer,hero.x-cameraX,hero.y,hero.heroIndex==2?44:34,hero.heroIndex==2?52:48);
+ // HUD bars: hero HP and campaign progress.
+ SDL_SetRenderDrawColor(renderer,0,0,0,190);rect(renderer,12,12,430,52);
+ SDL_SetRenderDrawColor(renderer,220,50,50,255);rect(renderer,26,28,hero.hp*34,18);
+ SDL_SetRenderDrawColor(renderer,70,170,245,255);rect(renderer,250,28,(stageIndex+1)*11,18);
 }
-void Engine::drawEditor(){
- drawGame();
- SDL_SetRenderDrawBlendMode(renderer,SDL_BLENDMODE_BLEND);
- SDL_SetRenderDrawColor(renderer,10,10,14,220);rect(renderer,0,0,1280,76);
- SDL_SetRenderDrawColor(renderer,60,170,240,255);rect(renderer,16,16,210,44);
- // Toolbar is keyboard-driven in milestone 1; full dockable GUI comes next.
-}
-void Engine::draw(){ if(playMode)drawGame(); else drawEditor(); SDL_RenderPresent(renderer); }
-int Engine::run(){
- Uint64 last=SDL_GetTicks();
- while(running){SDL_Event e;while(SDL_PollEvent(&e))event(e);Uint64 now=SDL_GetTicks();float dt=std::min((now-last)/1000.0f,0.033f);last=now;update(dt);draw();}
- return 0;
-}
+void Engine::drawEditor(){drawGame();SDL_SetRenderDrawColor(renderer,10,10,14,220);rect(renderer,0,0,1280,76);SDL_SetRenderDrawColor(renderer,60,170,240,255);rect(renderer,16,16,210,44);}
+void Engine::draw(){if(playMode)drawGame();else drawEditor();SDL_RenderPresent(renderer);}
+int Engine::run(){Uint64 last=SDL_GetTicks();while(running){SDL_Event e;while(SDL_PollEvent(&e))event(e);Uint64 now=SDL_GetTicks();float dt=std::min((now-last)/1000.f,.033f);last=now;update(dt);draw();}return 0;}
