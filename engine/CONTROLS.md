@@ -1,24 +1,33 @@
 # Controls
 
-## Play
-- A/D or arrows: move
-- Space/Z: jump
-- Q/E: switch Mario, Luigi, Bowser
+## Game — controller only
+The playable game does not use keyboard controls.
+
+### Xbox-style layout
+- Left stick / D-pad: move
+- A: jump
 - X: attack / fire
-- C: special / Bowser smash
-- W/S or up/down: climb vines / swim
-- V: interact / barrel action
-- R: restart stage
-- F5: editor/play-test toggle
+- B: special / Bowser smash
+- Y: interact / barrel action
+- LB / RB: previous / next hero
+- Start: pause/menu
 
-## Chaos test controls
-- J: random event
-- K: spawn exactly 5 enemies
-- L: mega event
+### PlayStation-style equivalent
+- Left stick / D-pad: move
+- Cross: jump
+- Square: attack / fire
+- Circle: special / Bowser smash
+- Triangle: interact / barrel action
+- L1 / R1: previous / next hero
+- Options: pause/menu
 
-J/K/L are reserved for the TikFinity/Chaos system and are not normal character-action buttons.
+SDL3 handles supported Xbox, PlayStation and compatible generic controllers.
 
-## Editor
+## TikFinity Chaos
+Chaos events are triggered by TikFinity/viewer events rather than keyboard gameplay keys. Local developer chaos testing will be exposed through the editor/debug tools instead of player controls.
+
+## Level Editor
+Keyboard and mouse remain available only for building/editing levels on PC:
 - 1: ground
 - 2: platform
 - 3: enemy
@@ -28,5 +37,5 @@ J/K/L are reserved for the TikFinity/Chaos system and are not normal character-a
 - 7: exit
 - Left click: place object
 - A/D or arrows: pan
-- F2: save current .hyrworld level
-- F5: play-test
+- F2: save
+- F5: enter play-test
