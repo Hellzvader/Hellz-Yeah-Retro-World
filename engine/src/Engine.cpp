@@ -19,8 +19,11 @@ void Engine::loadStage(int i){
  auto b=buildStage(stageIndex);world=std::move(b.world);enemies=std::move(b.enemies);
  hero.x=b.spawnX;hero.y=b.spawnY;hero.vx=hero.vy=0;hero.hp=hero.def().hp;shots.clear();powerups.clear();firePower=false;starTimer=0;cameraX=0;
  traversal=TraversalState{};traversal.checkpointX=b.spawnX;traversal.checkpointY=b.spawnY;
- barrels.clear();carriedBarrel=-1;
- for(const auto&o:world.objects)if(o.type==ObjectType::Barrel)barrels.push_back({o.bounds.x,o.bounds.y,0,0,false,true});
+ barrels.clear();movingPlatforms.clear();carriedBarrel=-1;
+ for(const auto&o:world.objects){
+  if(o.type==ObjectType::Barrel)barrels.push_back({o.bounds.x,o.bounds.y,0,0,false,true});
+  if(o.type==ObjectType::MovingPlatform)movingPlatforms.push_back({o.bounds,o.bounds.x,o.bounds.y,120.f,1.15f,(stageIndex%2)==0});
+ }
  // Seed useful pickups through every stage so power-ups are part of normal play.
  powerups.push_back({PowerupType::Mushroom,b.spawnX+360,520,true});
  powerups.push_back({PowerupType::FireFlower,b.spawnX+760,500,true});
@@ -83,7 +86,10 @@ void Engine::updateHero(float dt){
  const float gravity=(pad.jump&&hero.vy<0)?baseUp:baseDown;
  hero.vy=std::min(hero.vy+gravity*dt,hero.heroIndex==2?1050.f:900.f);
  if(pad.attack&&!previousPad.attack)fire();
- if(pad.special&&!previousPad.special)smash();
+ if(pad.special&&!previousPad.special){
+  smash();
+  if(hero.def().id=="bowser")for(auto&o:world.objects)if(o.type==ObjectType::BreakableBlock&&o.bounds.w>0&&std::abs((o.bounds.x+o.bounds.w*.5f)-(hero.x+16))<85&&std::abs((o.bounds.y+o.bounds.h*.5f)-(hero.y+24))<75){o.bounds.w=0;o.bounds.h=0;}
+ }
  if(pad.interact&&!previousPad.interact){
   if(carriedBarrel>=0&&carriedBarrel<(int)barrels.size()){throwBarrel(barrels[carriedBarrel],hero);carriedBarrel=-1;}
   else{int n=nearestBarrel(barrels,hero);if(n>=0){barrels[n].carried=true;carriedBarrel=n;}}
@@ -135,6 +141,11 @@ void Engine::updatePowerups(float dt){
  }
 }
 void Engine::updateStageMechanics(float dt){
+ updateMovingPlatforms(movingPlatforms,visualTime);
+ for(const auto&m:movingPlatforms){
+  const float feet=hero.y+48.f;
+  if(hero.vy>=0&&hero.x+30>m.bounds.x&&hero.x<m.bounds.x+m.bounds.w&&feet>=m.bounds.y-10&&feet<=m.bounds.y+18){hero.y=m.bounds.y-48.f;hero.vy=0;hero.grounded=true;}
+ }
  updateTraversal(hero,traversal,world,dt,pad.up,pad.down);
  for(const auto&o:world.objects){
   if(o.type==ObjectType::Hazard&&inside(hero,o.bounds)&&hurtTimer<=0&&starTimer<=0){
@@ -242,6 +253,7 @@ void Engine::drawGame(){
   SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,o.bounds.x-cameraX,o.bounds.y,o.bounds.w,o.bounds.h);
   SDL_SetRenderDrawColor(renderer,35,20,45,255);rect(renderer,o.bounds.x-cameraX+4,o.bounds.y+4,std::max(2.f,o.bounds.w*.35f),std::max(2.f,o.bounds.h*.35f));
  }
+ for(const auto&m:movingPlatforms){SDL_SetRenderDrawColor(renderer,110,110,120,255);rect(renderer,m.bounds.x-cameraX,m.bounds.y,m.bounds.w,m.bounds.h);}
  for(const auto&b:barrels)if(b.active){SpriteClip bc{32,32,1,1};if(!sprites.draw("barrel_live",imported("props/barrel.bmp"),bc,visualTime,b.x-cameraX,b.y,42,50)){SDL_SetRenderDrawColor(renderer,150,92,45,255);rect(renderer,b.x-cameraX,b.y,42,50);}}
  for(const auto&p:powerups)if(p.active){
   const char*file=p.type==PowerupType::Mushroom?"mushroom.bmp":p.type==PowerupType::FireFlower?"fireflower.bmp":p.type==PowerupType::Star?"star.bmp":p.type==PowerupType::Heart?"heart.bmp":"banana.bmp";
