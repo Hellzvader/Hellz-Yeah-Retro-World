@@ -12,6 +12,7 @@
 #include "SaveData.hpp"
 #include "Powerups.hpp"
 #include "EnemyAI.hpp"
+#include "Traversal.hpp"
 
 struct Projectile { float x{},y{},vx{},life{}; bool alive{true}; };
 
@@ -25,6 +26,7 @@ private:
  PadInput pad{},previousPad{};
  StreamerBotBridge streamerBot;
  RescueState rescue;
+ TraversalState traversal;
  SaveData saveData;
  bool paused{false},ending{false};
  bool running{true},playMode{true};
@@ -34,7 +36,7 @@ private:
  ObjectType brush{ObjectType::Ground};
 
  void loadStage(int index); void event(const SDL_Event& e); void update(float dt);
- void updateHero(float dt); void updateEnemies(float dt); void updateCombat(float dt); void updatePowerups(float dt);
+ void updateHero(float dt); void updateEnemies(float dt); void updateCombat(float dt); void updatePowerups(float dt); void updateStageMechanics(float dt);
  void draw(); void drawEditor(); void drawGame(); void placeObject(float x,float y);
  void drawHero(); void drawEnemy(const EnemyActor& e); bool drawWorldObject(const WorldObject& o);
  void fire(); void smash(); void applyStreamCommand(const StreamCommand& command);
