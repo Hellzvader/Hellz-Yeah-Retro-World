@@ -3,7 +3,7 @@
 #include <array>
 
 struct PadInput{
- bool left{},right{},up{},down{},jump{},attack{},special{},interact{},start{};
+ bool left{},right{},up{},down{},jump{},attack{},special{},interact{},start{},prevHero{},nextHero{};
  float axisX{},axisY{};
 };
 
@@ -26,7 +26,7 @@ public:
   i.up=b(SDL_GAMEPAD_BUTTON_DPAD_UP);i.down=b(SDL_GAMEPAD_BUTTON_DPAD_DOWN);
   i.jump=b(SDL_GAMEPAD_BUTTON_SOUTH);i.attack=b(SDL_GAMEPAD_BUTTON_WEST);
   i.special=b(SDL_GAMEPAD_BUTTON_EAST);i.interact=b(SDL_GAMEPAD_BUTTON_NORTH);
-  i.start=b(SDL_GAMEPAD_BUTTON_START);
+  i.start=b(SDL_GAMEPAD_BUTTON_START);i.prevHero=b(SDL_GAMEPAD_BUTTON_LEFT_SHOULDER);i.nextHero=b(SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER);
   i.axisX=SDL_GetGamepadAxis(p,SDL_GAMEPAD_AXIS_LEFTX)/32767.f;
   i.axisY=SDL_GetGamepadAxis(p,SDL_GAMEPAD_AXIS_LEFTY)/32767.f;
   if(i.axisX<-.25f)i.left=true;if(i.axisX>.25f)i.right=true;
