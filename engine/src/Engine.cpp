@@ -54,11 +54,9 @@ void Engine::updateHero(float dt){
  if(pad.jump&&!previousPad.jump&&hero.grounded){hero.vy=-hero.def().jump;hero.grounded=false;}
  if(pad.attack&&!previousPad.attack)fire();
  if(pad.special&&!previousPad.special)smash();
- // Shoulder buttons switch the active hero.
- if(gamepads.pads[0]){
-  if(SDL_GetGamepadButton(gamepads.pads[0],SDL_GAMEPAD_BUTTON_LEFT_SHOULDER)&&!SDL_GetGamepadButton(gamepads.pads[0],SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER))hero.switchPrev();
-  if(SDL_GetGamepadButton(gamepads.pads[0],SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER)&&!SDL_GetGamepadButton(gamepads.pads[0],SDL_GAMEPAD_BUTTON_LEFT_SHOULDER))hero.switchNext();
- }
+ // Shoulder buttons switch once per press, not once per frame.
+ if(pad.prevHero&&!previousPad.prevHero){hero.switchPrev();saveData.selectedHero=hero.heroIndex;}
+ if(pad.nextHero&&!previousPad.nextHero){hero.switchNext();saveData.selectedHero=hero.heroIndex;}
  float oldY=hero.y;hero.x+=hero.vx*dt;hero.y+=hero.vy*dt;hero.grounded=false;
  for(const auto&o:world.objects)if(o.type==ObjectType::Ground||o.type==ObjectType::Platform)
   if(overlap(hero.x,hero.y,34,48,o.bounds)&&hero.vy>=0&&oldY+48<=o.bounds.y+6){hero.y=o.bounds.y-48;hero.vy=0;hero.grounded=true;}
