@@ -284,10 +284,15 @@ void Engine::drawEnemy(const EnemyActor&e){
  builtinEnemy(renderer,e,e.x-cameraX,e.y);
 }
 void Engine::drawGame(){
- SDL_SetRenderDrawColor(renderer,15,27,48,255);SDL_RenderClear(renderer);
- // Layered retro sky and distant silhouettes, visible even before local sprite imports.
- SDL_SetRenderDrawColor(renderer,24,55,82,255);for(int i=0;i<10;i++)rect(renderer,i*180.f-std::fmod(cameraX*.18f,180.f),300+(i%3)*35,150,420);
- SDL_SetRenderDrawColor(renderer,30,82,72,255);for(int i=0;i<12;i++)rect(renderer,i*145.f-std::fmod(cameraX*.35f,145.f),430+(i%2)*24,110,290);
+ // Stage-themed parallax backgrounds: bright Mushroom Kingdom, jungle, mine, ship, factory and fortress.
+ const int worldBand=stageIndex/3;
+ ArtColor sky=worldBand==0?ArtColor{82,176,235,255}:worldBand==1?ArtColor{45,125,105,255}:worldBand==2?ArtColor{38,68,96,255}:worldBand==3?ArtColor{72,65,78,255}:ArtColor{48,42,62,255};
+ SDL_SetRenderDrawColor(renderer,sky.r,sky.g,sky.b,255);SDL_RenderClear(renderer);
+ if(worldBand==0){SDL_SetRenderDrawColor(renderer,245,245,220,220);for(int i=0;i<8;i++){float x=i*220.f-std::fmod(cameraX*.12f,220.f);rect(renderer,x,105+(i%2)*30,90,28);rect(renderer,x+25,85+(i%2)*30,55,42);}SDL_SetRenderDrawColor(renderer,80,175,80,255);for(int i=0;i<10;i++)rect(renderer,i*180.f-std::fmod(cameraX*.2f,180.f),390+(i%3)*24,150,330);}
+ else if(worldBand==1){SDL_SetRenderDrawColor(renderer,25,88,55,255);for(int i=0;i<13;i++){float x=i*130.f-std::fmod(cameraX*.18f,130.f);rect(renderer,x,240,42,480);rect(renderer,x-35,210+(i%3)*22,115,70);}SDL_SetRenderDrawColor(renderer,55,145,65,255);for(int i=0;i<15;i++)rect(renderer,i*105.f-std::fmod(cameraX*.38f,105.f),420+(i%2)*35,80,300);}
+ else if(worldBand==2){SDL_SetRenderDrawColor(renderer,25,38,48,255);for(int i=0;i<18;i++){float x=i*95.f-std::fmod(cameraX*.15f,95.f);rect(renderer,x,0,45,175+(i%4)*35);rect(renderer,x+35,540-(i%3)*30,70,180);}SDL_SetRenderDrawColor(renderer,90,120,135,255);for(int i=0;i<10;i++)rect(renderer,i*170.f-std::fmod(cameraX*.3f,170.f),280+(i%3)*45,80,12);}
+ else if(worldBand==3){SDL_SetRenderDrawColor(renderer,34,45,62,255);for(int i=0;i<10;i++){float x=i*190.f-std::fmod(cameraX*.12f,190.f);rect(renderer,x,420+(i%2)*30,160,300);}SDL_SetRenderDrawColor(renderer,105,85,70,255);for(int i=0;i<9;i++){float x=i*210.f-std::fmod(cameraX*.34f,210.f);rect(renderer,x,330,170,24);rect(renderer,x+18,354,16,220);}}
+ else{SDL_SetRenderDrawColor(renderer,72,48,38,255);for(int i=0;i<12;i++){float x=i*145.f-std::fmod(cameraX*.18f,145.f);rect(renderer,x,250,105,470);SDL_SetRenderDrawColor(renderer,205,95,35,255);rect(renderer,x+35,300+(i%3)*55,28,28);SDL_SetRenderDrawColor(renderer,72,48,38,255);}SDL_SetRenderDrawColor(renderer,35,35,42,255);for(int i=0;i<11;i++)rect(renderer,i*155.f-std::fmod(cameraX*.4f,155.f),450+(i%2)*30,120,270);}
  for(const auto&o:world.objects)if(!drawWorldObject(o))builtinObject(renderer,o,cameraX);
  for(const auto&m:movingPlatforms){SDL_SetRenderDrawColor(renderer,110,110,120,255);rect(renderer,m.bounds.x-cameraX,m.bounds.y,m.bounds.w,m.bounds.h);}
  for(const auto&b:barrels)if(b.active){SpriteClip bc{32,32,1,1};if(!sprites.draw("barrel_live",imported("props/barrel.bmp"),bc,visualTime,b.x-cameraX,b.y,42,50)){WorldObject bo{ObjectType::Barrel,{b.x,b.y,42,50},"Barrel"};builtinObject(renderer,bo,cameraX);}}
@@ -298,9 +303,14 @@ void Engine::drawGame(){
  for(const auto&e:enemies)if(e.alive)drawEnemy(e);
  SDL_SetRenderDrawColor(renderer,255,145,35,255);for(const auto&s:shots)if(s.alive)rect(renderer,s.x-cameraX,s.y,14,10);
  drawHero();
- SDL_SetRenderDrawColor(renderer,0,0,0,190);rect(renderer,12,12,430,52);
- SDL_SetRenderDrawColor(renderer,220,50,50,255);rect(renderer,26,28,hero.hp*34,18);
- SDL_SetRenderDrawColor(renderer,70,170,245,255);rect(renderer,250,28,(stageIndex+1)*11,18);
+ // Pixel HUD: hero portrait, heart health pips, power state and campaign progress.
+ SDL_SetRenderDrawColor(renderer,15,18,28,220);rect(renderer,12,12,500,64);
+ builtinHero(renderer,hero.heroIndex,22,18,false);
+ for(int i=0;i<hero.def().hp;i++){SDL_SetRenderDrawColor(renderer,i<hero.hp?225:75,i<hero.hp?45:55,i<hero.hp?70:60,255);rect(renderer,76+i*24,30,16,14);rect(renderer,80+i*24,26,8,22);}
+ if(firePower){SDL_SetRenderDrawColor(renderer,245,145,35,255);rect(renderer,250,27,18,24);rect(renderer,244,34,30,10);}
+ if(starTimer>0){SDL_SetRenderDrawColor(renderer,250,215,45,255);rect(renderer,286,27,18,24);rect(renderer,280,34,30,10);}
+ SDL_SetRenderDrawColor(renderer,65,165,235,255);rect(renderer,330,31,160,12);
+ SDL_SetRenderDrawColor(renderer,245,210,55,255);rect(renderer,330,31,160.f*(stageIndex+1)/(float)campaign.stages.size(),12);
 }
 void Engine::drawEditor(){drawGame();SDL_SetRenderDrawColor(renderer,10,10,14,220);rect(renderer,0,0,1280,76);SDL_SetRenderDrawColor(renderer,60,170,240,255);rect(renderer,16,16,210,44);}
 void Engine::draw(){if(playMode)drawGame();else drawEditor();if(paused){SDL_SetRenderDrawColor(renderer,0,0,0,170);rect(renderer,0,0,1280,720);SDL_SetRenderDrawColor(renderer,230,230,230,255);rect(renderer,500,300,280,90);}if(ending){SDL_SetRenderDrawColor(renderer,10,18,42,230);rect(renderer,0,0,1280,720);SDL_SetRenderDrawColor(renderer,245,190,80,255);rect(renderer,390,220,500,220);}SDL_RenderPresent(renderer);}
