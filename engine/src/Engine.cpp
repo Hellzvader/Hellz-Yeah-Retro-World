@@ -49,20 +49,55 @@ void Engine::placeObject(float x,float y){
  world.objects.push_back(o);
 }
 void Engine::updateHero(float dt){
- float d=(pad.right?1.f:0.f)-(pad.left?1.f:0.f);if(d)hero.facing=d;
- hero.vx=d*hero.def().speed;hero.vy+=1450*dt;
- if(pad.jump&&!previousPad.jump&&hero.grounded){hero.vy=-hero.def().jump;hero.grounded=false;}
+ // Controller-only platform movement: acceleration, braking, air control and variable jump height.
+ float d=(pad.right?1.f:0.f)-(pad.left?1.f:0.f);
+ if(d)hero.facing=d;
+ const float maxSpeed=hero.def().speed;
+ const float accel=hero.grounded?1550.f:820.f;
+ const float brake=hero.grounded?1900.f:520.f;
+ const float target=d*maxSpeed;
+ if(d!=0.f){
+  if(hero.vx<target)hero.vx=std::min(target,hero.vx+accel*dt);
+  else if(hero.vx>target)hero.vx=std::max(target,hero.vx-accel*dt);
+ }else{
+  if(hero.vx>0)hero.vx=std::max(0.f,hero.vx-brake*dt);
+  else if(hero.vx<0)hero.vx=std::min(0.f,hero.vx+brake*dt);
+ }
+ const bool jumpPressed=pad.jump&&!previousPad.jump;
+ const bool jumpReleased=!pad.jump&&previousPad.jump;
+ if(jumpPressed&&hero.grounded){hero.vy=-hero.def().jump;hero.grounded=false;}
+ // Releasing jump early cuts upward velocity for short hops.
+ if(jumpReleased&&hero.vy<0)hero.vy*=0.45f;
+ // Slightly lighter gravity while holding jump upward, heavier on the fall.
+ const float gravity=(pad.jump&&hero.vy<0)?1180.f:1650.f;
+ hero.vy=std::min(hero.vy+gravity*dt,900.f);
  if(pad.attack&&!previousPad.attack)fire();
  if(pad.special&&!previousPad.special)smash();
- // Shoulder buttons switch once per press, not once per frame.
  if(pad.prevHero&&!previousPad.prevHero){hero.switchPrev();saveData.selectedHero=hero.heroIndex;}
  if(pad.nextHero&&!previousPad.nextHero){hero.switchNext();saveData.selectedHero=hero.heroIndex;}
- float oldY=hero.y;hero.x+=hero.vx*dt;hero.y+=hero.vy*dt;hero.grounded=false;
+ float oldX=hero.x,oldY=hero.y;
+ hero.x+=hero.vx*dt;
+ // Resolve horizontal solids so movement cannot simply pass through terrain.
+ for(const auto&o:world.objects)if(o.type==ObjectType::Ground){
+  if(overlap(hero.x,hero.y,34,48,o.bounds)){
+   if(hero.vx>0)hero.x=o.bounds.x-34;else if(hero.vx<0)hero.x=o.bounds.x+o.bounds.w;
+   hero.vx=0;
+  }
+ }
+ hero.y+=hero.vy*dt;hero.grounded=false;
  for(const auto&o:world.objects)if(o.type==ObjectType::Ground||o.type==ObjectType::Platform)
-  if(overlap(hero.x,hero.y,34,48,o.bounds)&&hero.vy>=0&&oldY+48<=o.bounds.y+6){hero.y=o.bounds.y-48;hero.vy=0;hero.grounded=true;}
+  if(overlap(hero.x,hero.y,34,48,o.bounds)&&hero.vy>=0&&oldY+48<=o.bounds.y+8){hero.y=o.bounds.y-48;hero.vy=0;hero.grounded=true;}
+ hero.x=std::clamp(hero.x,0.f,std::max(0.f,(float)world.width-34.f));
  if(hero.y>800)loadStage(stageIndex);
  for(const auto&o:world.objects)if(o.type==ObjectType::Exit&&overlap(hero.x,hero.y,34,48,o.bounds)){
-  bool bossAlive=false;for(auto&e:enemies)if(e.alive&&e.def().boss)bossAlive=true;if(!bossAlive)loadStage(stageIndex+1);
+  bool bossAlive=false;for(auto&e:enemies)if(e.alive&&e.def().boss)bossAlive=true;
+  if(!bossAlive){
+   if(stageIndex<(int)campaign.stages.size()-1){
+    saveData.unlockedStage=std::max(saveData.unlockedStage,stageIndex+1);
+    saveData.selectedHero=hero.heroIndex;saveData.save("hellzyeah_save.dat");
+    loadStage(stageIndex+1);
+   }
+  }
  }
  cameraX=std::clamp(hero.x-450.f,0.f,std::max(0.f,(float)world.width-1280));
 }
