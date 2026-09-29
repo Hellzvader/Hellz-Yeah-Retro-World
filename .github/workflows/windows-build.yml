@@ -1,0 +1,26 @@
+name: Windows Engine Build
+on:
+  push:
+    branches: [ main ]
+    paths: [ "engine/**", ".github/workflows/windows-build.yml" ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S engine -B engine/build -A x64
+      - name: Build
+        run: cmake --build engine/build --config Release
+      - name: Stage
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist
+          Copy-Item engine/build/Release/HellzYeahRetroEngine.exe dist/
+          Get-ChildItem engine/build/_deps/sdl3-build/Release/*.dll -ErrorAction SilentlyContinue | Copy-Item -Destination dist/
+          Copy-Item engine/README.md dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HellzYeahRetroEngine-Windows
+          path: dist/
