@@ -14,6 +14,7 @@
 #include "EnemyAI.hpp"
 #include "Traversal.hpp"
 #include "BarrelSystem.hpp"
+#include "Gameplay.hpp"
 
 struct Projectile { float x{},y{},vx{},life{}; bool alive{true}; };
 
@@ -33,7 +34,7 @@ private:
  bool running{true},playMode{true};
  World world; HeroActor hero; std::vector<EnemyActor> enemies; std::vector<Projectile> shots;
  Campaign campaign; int stageIndex{0}; float cameraX{},hurtTimer{},attackTimer{},visualTime{},starTimer{};
- std::vector<Powerup> powerups; std::vector<BarrelActor> barrels; int carriedBarrel{-1}; bool firePower{};
+ std::vector<Powerup> powerups; std::vector<BarrelActor> barrels; std::vector<MovingPlatform> movingPlatforms; int carriedBarrel{-1}; bool firePower{};
  ObjectType brush{ObjectType::Ground};
 
  void loadStage(int index); void event(const SDL_Event& e); void update(float dt);
