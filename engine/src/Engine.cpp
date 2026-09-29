@@ -16,7 +16,7 @@ bool Engine::init(){
 void Engine::shutdown(){if(renderer)SDL_DestroyRenderer(renderer);if(window)SDL_DestroyWindow(window);SDL_Quit();}
 void Engine::loadStage(int i){
  stageIndex=(i+(int)campaign.stages.size())%campaign.stages.size();
- auto b=buildStage(stageIndex);world=std::move(b.world);enemies=std::move(b.enemies);
+ auto b=buildStage(stageIndex);world=std::move(b.world);enemies=std::move(b.enemies);bossStates.assign(enemies.size(),BossState{});
  hero.x=b.spawnX;hero.y=b.spawnY;hero.vx=hero.vy=0;hero.hp=hero.def().hp;shots.clear();powerups.clear();firePower=false;starTimer=0;cameraX=0;
  traversal=TraversalState{};traversal.checkpointX=b.spawnX;traversal.checkpointY=b.spawnY;
  barrels.clear();movingPlatforms.clear();carriedBarrel=-1;
