@@ -7,6 +7,7 @@
 #include "LevelFactory.hpp"
 #include "SpriteLibrary.hpp"
 #include "Gamepad.hpp"
+#include "StreamerBotBridge.hpp"
 
 struct Projectile { float x{},y{},vx{},life{}; bool alive{true}; };
 
@@ -18,6 +19,7 @@ private:
  SpriteLibrary sprites;
  GamepadManager gamepads;
  PadInput pad{},previousPad{};
+ StreamerBotBridge streamerBot;
  bool running{true},playMode{true};
  World world; HeroActor hero; std::vector<EnemyActor> enemies; std::vector<Projectile> shots;
  Campaign campaign; int stageIndex{0}; float cameraX{},hurtTimer{},attackTimer{},visualTime{};
@@ -27,5 +29,5 @@ private:
  void updateHero(float dt); void updateEnemies(float dt); void updateCombat(float dt);
  void draw(); void drawEditor(); void drawGame(); void placeObject(float x,float y);
  void drawHero(); void drawEnemy(const EnemyActor& e); bool drawWorldObject(const WorldObject& o);
- void fire(); void smash();
+ void fire(); void smash(); void applyStreamCommand(const StreamCommand& command);
 };
