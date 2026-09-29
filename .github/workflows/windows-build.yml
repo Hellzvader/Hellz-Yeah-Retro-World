@@ -4,23 +4,37 @@ on:
     branches: [ main ]
     paths: [ "engine/**", ".github/workflows/windows-build.yml" ]
   workflow_dispatch:
+
+concurrency:
+  group: hellz-yeah-windows-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Configure
-        run: cmake -S engine -B engine/build -A x64
-      - name: Build
-        run: cmake --build engine/build --config Release
-      - name: Stage
+        run: cmake -S engine -B engine/build -A x64 -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF
+      - name: Build engine only
+        run: cmake --build engine/build --config Release --target HellzYeahRetroEngine
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (!(Test-Path "engine/build/Release/HellzYeahRetroEngine.exe")) { throw "HellzYeahRetroEngine.exe was not created" }
+      - name: Stage playable build
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist
           Copy-Item engine/build/Release/HellzYeahRetroEngine.exe dist/
-          Get-ChildItem engine/build/_deps/sdl3-build/Release/*.dll -ErrorAction SilentlyContinue | Copy-Item -Destination dist/
+          $dll = Get-ChildItem engine/build/_deps/sdl3-build/Release/SDL3.dll -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($dll) { Copy-Item $dll.FullName dist/SDL3.dll }
           Copy-Item engine/README.md dist/
+          Copy-Item engine/CONTROLS.md dist/ -ErrorAction SilentlyContinue
+          Copy-Item engine/NETPLAY.md dist/ -ErrorAction SilentlyContinue
       - uses: actions/upload-artifact@v4
         with:
           name: HellzYeahRetroEngine-Windows
           path: dist/
+          if-no-files-found: error
