@@ -35,5 +35,18 @@ inline const std::vector<EnemyDef> ENEMIES={
  {"klaptrap","Klaptrap",EnemyFamily::Kong,2,105,false,false},
  {"army","Army",EnemyFamily::Kong,3,65,false,false},
  {"mini_necky","Mini-Necky",EnemyFamily::Kong,1,110,true,false},
+ {"kaboing","Kaboing",EnemyFamily::Kong,2,95,false,false},
+ {"klampon","Klampon",EnemyFamily::Kong,2,105,false,false},
+ {"kruncha","Kruncha",EnemyFamily::Kong,4,60,false,false},
+ {"kutlass","Kutlass",EnemyFamily::Kong,3,80,false,false},
+ {"kannon","Kannon",EnemyFamily::Kong,4,55,false,false},
+ {"klobber","Klobber",EnemyFamily::Kong,3,75,false,false},
+ {"neek","Neek",EnemyFamily::Kong,1,105,false,false},
+ {"click_clack","Click-Clack",EnemyFamily::Kong,2,80,false,false},
+ {"flitter","Flitter",EnemyFamily::Kong,1,115,true,false},
+ {"spiny_dkc2","Spiny",EnemyFamily::Kong,2,80,false,false},
+ {"screech","Screech",EnemyFamily::Kong,2,120,true,false},
+ {"king_zing","King Zing",EnemyFamily::Kong,16,105,true,true},
+ {"kudgel","Kudgel",EnemyFamily::Kong,18,65,false,true},
  {"dk_guardian","Kong Guardian",EnemyFamily::Kong,12,75,false,true}
 };
