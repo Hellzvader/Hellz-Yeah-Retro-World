@@ -1,12 +1,22 @@
-# Local Sprite Asset Import
+# Local Visual Asset Pack
 
-Put sprite sheets extracted from games you own in this folder. This directory is ignored by Git and is never uploaded by the project.
+Hellz Yeah Retro World is an unofficial, non-commercial fan project. Nintendo-related characters, names, artwork and game assets remain the property of their respective rights holders. The engine code and original project code are separate from those assets.
 
-The native engine currently accepts **BMP sprite sheets** with transparent/magenta backgrounds prepared by you.
+## Reference / credits
+Sprite-sheet reference pages selected for this project:
+- The Spriters Resource — Super Mario All-Stars / Super Mario Bros.
+- The Spriters Resource — Super Mario All-Stars / Super Mario Bros. 3
+- The Spriters Resource — Super Mario World
+- The Spriters Resource — Donkey Kong Country
+- The Spriters Resource — Donkey Kong Country 2
+- The Spriters Resource — Donkey Kong Country 3
 
-Expected filenames:
+Credit the individual sheet submitter/ripper listed on each source page when preparing a local asset pack.
 
-## Heroes
+## Local-only assets
+This directory is ignored by Git except for this README. Proprietary/ripped graphics are not committed to the public repository. Put prepared BMP animation strips here and the Windows build will load them relative to the executable.
+
+### Heroes
 - heroes/mario_idle.bmp
 - heroes/mario_run.bmp
 - heroes/mario_jump.bmp
@@ -17,7 +27,7 @@ Expected filenames:
 - heroes/bowser_run.bmp
 - heroes/bowser_jump.bmp
 
-## Mushroom-side enemies
+### Mushroom enemies
 - enemies/mushroom/goomba.bmp
 - enemies/mushroom/koopa.bmp
 - enemies/mushroom/paratroopa.bmp
@@ -27,7 +37,7 @@ Expected filenames:
 - enemies/mushroom/hammerbro.bmp
 - enemies/mushroom/lakitu.bmp
 
-## DKC enemies
+### Kong enemies / boss
 - enemies/kong/kritter.bmp
 - enemies/kong/klump.bmp
 - enemies/kong/necky.bmp
@@ -38,14 +48,17 @@ Expected filenames:
 - enemies/kong/mini_necky.bmp
 - bosses/dk_guardian.bmp
 
-## World art
+### Powerups and world art
+- items/mushroom.bmp
+- items/fireflower.bmp
+- items/star.bmp
+- items/heart.bmp
+- items/banana.bmp
+- items/coin.bmp
 - tiles/ground.bmp
 - tiles/platform.bmp
 - props/barrel.bmp
 - props/vine.bmp
 - props/exit.bmp
-- items/coin.bmp
 
-Sheets are horizontal strips. Keep frames equal-sized. The engine uses nearest-neighbor scaling for a crisp retro look.
-
-These imported files stay local and are not distributed by this repository.
+Sheets should be converted/prepared as equal-sized horizontal BMP frame strips. Magenta RGB(255,0,255) is treated as transparent. Nearest-neighbor scaling is used for crisp pixel art.
