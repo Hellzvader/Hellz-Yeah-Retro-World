@@ -13,7 +13,11 @@ public:
  SDL_Texture* load(const std::string&id,const std::string&path){
   auto it=textures.find(id);if(it!=textures.end())return it->second;
   if(!renderer)return nullptr;
-  SDL_Surface*s=SDL_LoadBMP(path.c_str());if(!s)return nullptr;
+  std::string resolved=path;
+  if(!SDL_GetPathInfo(resolved.c_str(),nullptr)){if(char*base=SDL_GetBasePath()){resolved=std::string(base)+path;SDL_free(base);}}
+  SDL_Surface*s=SDL_LoadBMP(resolved.c_str());if(!s)return nullptr;
+  // Imported sheets may use magenta as a transparency key.
+  SDL_SetSurfaceColorKey(s,true,SDL_MapSurfaceRGB(s,255,0,255));
   SDL_Texture*t=SDL_CreateTextureFromSurface(renderer,s);SDL_DestroySurface(s);
   if(t){SDL_SetTextureScaleMode(t,SDL_SCALEMODE_NEAREST);textures[id]=t;}return t;
  }
