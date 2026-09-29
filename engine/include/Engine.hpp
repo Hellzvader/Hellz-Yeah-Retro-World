@@ -6,6 +6,7 @@
 #include "Campaign.hpp"
 #include "LevelFactory.hpp"
 #include "SpriteLibrary.hpp"
+#include "VisualManifest.hpp"
 #include "Gamepad.hpp"
 #include "StreamerBotBridge.hpp"
 #include "PeachRescue.hpp"
