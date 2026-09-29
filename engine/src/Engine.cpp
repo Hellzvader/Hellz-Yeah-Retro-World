@@ -160,7 +160,7 @@ void Engine::updateEnemies(float dt){
  for(auto&e:enemies)if(e.alive){
   enemyBrain(e,hero.x,hero.y,dt,aiTime);
   e.vy+=e.def().flying?0:1300*dt;e.x+=e.vx*dt;e.y+=e.vy*dt;
-    else for(const auto&o:world.objects)if((o.type==ObjectType::Ground||o.type==ObjectType::Platform)&&overlap(e.x,e.y,38,42,o.bounds)&&e.vy>=0){e.y=o.bounds.y-42;e.vy=0;}
+   if(!e.def().flying)for(const auto&o:world.objects)if((o.type==ObjectType::Ground||o.type==ObjectType::Platform)&&overlap(e.x,e.y,38,42,o.bounds)&&e.vy>=0){e.y=o.bounds.y-42;e.vy=0;}
   if(e.x<40||e.x>world.width-40)e.vx=-e.vx;
   if(overlapE(hero.x,hero.y,34,48,e)){
    if(starTimer>0){e.alive=false;hero.vy=-180;}
