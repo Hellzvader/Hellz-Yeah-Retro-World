@@ -126,7 +126,6 @@ void Engine::updateEnemies(float dt){
    else if(hero.vy>70&&hero.y+42<e.y+18){e.hp-=hero.def().smash?2:1;hero.vy=pad.jump?-390.f:-315.f;if(e.hp<=0)e.alive=false;}
    else if(hurtTimer<=0){hero.hp--;hurtTimer=1.2f;hero.vx=-hero.facing*240.f;hero.vy=-330;if(hero.hp<=0)loadStage(stageIndex);}
   }
-  }
  }
 }
 void Engine::updateCombat(float dt){
