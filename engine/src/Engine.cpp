@@ -160,13 +160,12 @@ void Engine::updateEnemies(float dt){
  for(auto&e:enemies)if(e.alive){
   enemyBrain(e,hero.x,hero.y,dt,aiTime);
   e.vy+=e.def().flying?0:1300*dt;e.x+=e.vx*dt;e.y+=e.vy*dt;
-  if(e.def().flying)e.y+=std::sin(aiTime*2.85f+e.x*.01f)*18*dt;
-  else for(const auto&o:world.objects)if((o.type==ObjectType::Ground||o.type==ObjectType::Platform)&&overlap(e.x,e.y,38,42,o.bounds)&&e.vy>=0){e.y=o.bounds.y-42;e.vy=0;}
+    else for(const auto&o:world.objects)if((o.type==ObjectType::Ground||o.type==ObjectType::Platform)&&overlap(e.x,e.y,38,42,o.bounds)&&e.vy>=0){e.y=o.bounds.y-42;e.vy=0;}
   if(e.x<40||e.x>world.width-40)e.vx=-e.vx;
   if(overlapE(hero.x,hero.y,34,48,e)){
    if(starTimer>0){e.alive=false;hero.vy=-180;}
    else if(hero.vy>70&&hero.y+42<e.y+18){e.hp-=hero.def().smash?2:1;hero.vy=pad.jump?-390.f:-315.f;if(e.hp<=0)e.alive=false;}
-   else if(hurtTimer<=0){hero.hp--;hurtTimer=1.2f;hero.vx=-hero.facing*240.f;hero.vy=-330;if(hero.hp<=0)loadStage(stageIndex);}
+   else if(hurtTimer<=0){hero.hp--;hurtTimer=1.2f;hero.vx=-hero.facing*240.f;hero.vy=-330;if(hero.hp<=0)respawnAtCheckpoint(hero,traversal);}
   }
  }
 }
@@ -191,7 +190,7 @@ void Engine::applyStreamCommand(const StreamCommand& c){
  else if(c.command=="spawn_five")spawn(5,c.argument,c.viewer);
  else if(c.command=="mega")spawn(10,c.argument,c.viewer);
  else if(c.command=="heal")hero.hp=std::min(hero.def().hp,hero.hp+std::max(1,c.value));
- else if(c.command=="damage"){hero.hp-=std::max(1,c.value);if(hero.hp<=0)loadStage(stageIndex);}
+ else if(c.command=="damage"){hero.hp-=std::max(1,c.value);if(hero.hp<=0)respawnAtCheckpoint(hero,traversal);}
  else if(c.command=="hero"){
   if(c.argument=="mario")hero.heroIndex=0;else if(c.argument=="luigi")hero.heroIndex=1;else if(c.argument=="bowser")hero.heroIndex=2;
   hero.hp=std::min(hero.hp,hero.def().hp);
