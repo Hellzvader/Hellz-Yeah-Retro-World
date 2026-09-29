@@ -1,29 +1,30 @@
 # Hellz Yeah Retro World
 
-A from-scratch retro platformer project built with LÖVE (Love2D).
+Hellz Yeah Retro World is a from-scratch native Windows retro platformer engine and game project.
 
-## Current build
-- Standalone Lua/LÖVE game
-- Multiple playable heroes with distinct movement stats
-- Character switching
-- Platforming, camera, collisions and collectibles
-- Walking, flying and heavy enemy archetypes
-- Barrels and power-up pickups
-- J/K/L Chaos test controls
-- TikFinity queue hook: `username|gift_name|diamondCount`
-- Original placeholder vector/pixel-style graphics drawn by the engine
+## Engine
+- C++20
+- SDL3
+- Native Windows executable
+- Built-in level/editor framework
+- Mario, Luigi and Bowser hero framework
+- Mushroom Kingdom and Kong enemy systems
+- Campaign progression and boss framework
+- TikFinity chaos-event integration
+- Keyboard and SDL gamepad support
+- 1-4 player multiplayer architecture
+- Deterministic 60 Hz simulation foundation for netplay
+- Windows builds through GitHub Actions
 
-## Controls
-- A/D or Left/Right: move
-- Space / Z: jump
-- Shift / X: run
-- Q/E: switch character
-- J: random Chaos event
-- K: spawn 5 enemies
-- L: mega event
-- R: restart level
+## Build
+The active project is in `engine/`.
 
-## Run
-Install LÖVE 11.x, then drag this project folder onto love.exe or run `love .`.
+On Windows, run:
+`engine/build-windows.bat`
 
-This repository intentionally does not bundle Nintendo ROMs, ripped sprites, music, or other proprietary game assets.
+Or use the **Windows Engine Build** workflow in GitHub Actions and download the generated artifact after a successful build.
+
+## Project rule
+This repository is native C++/SDL3 only. The old Lua/LÖVE prototype has been removed.
+
+The repository does not bundle Nintendo ROMs, ripped sprites, music, or other proprietary game assets.
