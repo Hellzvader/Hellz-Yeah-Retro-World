@@ -86,14 +86,55 @@ void Engine::update(float dt){
  if(playMode){updateHero(dt);updateEnemies(dt);updateCombat(dt);}
  else{const auto*k=SDL_GetKeyboardState(nullptr);if(k[SDL_SCANCODE_A]||k[SDL_SCANCODE_LEFT])cameraX=std::max(0.f,cameraX-500*dt);if(k[SDL_SCANCODE_D]||k[SDL_SCANCODE_RIGHT])cameraX=std::min(std::max(0.f,(float)world.width-1280),cameraX+500*dt);}
 }
+static std::string imported(const std::string& p){return "assets/imported/"+p;}
+
+bool Engine::drawWorldObject(const WorldObject&o){
+ std::string id,path;SpriteClip clip{32,32,1,1};
+ switch(o.type){
+  case ObjectType::Ground:id="tile_ground";path=imported("tiles/ground.bmp");break;
+  case ObjectType::Platform:id="tile_platform";path=imported("tiles/platform.bmp");break;
+  case ObjectType::Coin:id="item_coin";path=imported("items/coin.bmp");break;
+  case ObjectType::Barrel:id="prop_barrel";path=imported("props/barrel.bmp");break;
+  case ObjectType::Vine:id="prop_vine";path=imported("props/vine.bmp");break;
+  case ObjectType::Exit:id="prop_exit";path=imported("props/exit.bmp");break;
+  default:return false;
+ }
+ return sprites.draw(id,path,clip,visualTime,o.bounds.x-cameraX,o.bounds.y,o.bounds.w,o.bounds.h);
+}
+void Engine::drawHero(){
+ const char*name=hero.heroIndex==0?"mario":hero.heroIndex==1?"luigi":"bowser";
+ const bool moving=std::abs(hero.vx)>5;
+ const char*state=!hero.grounded?"jump":moving?"run":"idle";
+ std::string id=std::string("hero_")+name+"_"+state;
+ std::string path=imported(std::string("heroes/")+name+"_"+state+".bmp");
+ SpriteClip clip{hero.heroIndex==2?48:32,hero.heroIndex==2?48:48,moving?4:1,moving?10.f:1.f};
+ float w=hero.heroIndex==2?52.f:40.f,h=hero.heroIndex==2?56.f:56.f;
+ if(!sprites.draw(id,path,clip,visualTime,hero.x-cameraX,hero.y-(h-48),w,h,hero.facing<0)){
+  SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,hero.x-cameraX,hero.y,w,h);
+ }
+}
+void Engine::drawEnemy(const EnemyActor&e){
+ std::string folder=e.def().boss?"bosses/":e.def().family==EnemyFamily::Kong?"enemies/kong/":"enemies/mushroom/";
+ std::string id="enemy_"+e.def().id,path=imported(folder+e.def().id+".bmp");
+ SpriteClip clip{e.def().boss?64:48,e.def().boss?64:48,4,8};
+ float size=e.def().boss?80.f:50.f;
+ if(!sprites.draw(id,path,clip,visualTime,e.x-cameraX,e.y-(size-42),size,size,e.vx>0)){
+  SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,e.x-cameraX,e.y,size,size);
+ }
+}
 void Engine::drawGame(){
  SDL_SetRenderDrawColor(renderer,15,27,48,255);SDL_RenderClear(renderer);
- for(const auto&o:world.objects){switch(o.type){case ObjectType::Ground:case ObjectType::Platform:SDL_SetRenderDrawColor(renderer,45,145,65,255);break;case ObjectType::Coin:SDL_SetRenderDrawColor(renderer,250,210,40,255);break;case ObjectType::Barrel:SDL_SetRenderDrawColor(renderer,135,75,35,255);break;case ObjectType::Vine:SDL_SetRenderDrawColor(renderer,30,180,65,255);break;case ObjectType::Exit:SDL_SetRenderDrawColor(renderer,70,180,235,255);break;default:SDL_SetRenderDrawColor(renderer,120,120,120,255);}rect(renderer,o.bounds.x-cameraX,o.bounds.y,o.bounds.w,o.bounds.h);}
- for(const auto&e:enemies)if(e.alive){if(e.def().boss)SDL_SetRenderDrawColor(renderer,160,50,180,255);else if(e.def().family==EnemyFamily::Kong)SDL_SetRenderDrawColor(renderer,170,90,35,255);else SDL_SetRenderDrawColor(renderer,190,60,45,255);rect(renderer,e.x-cameraX,e.y,e.def().boss?64:38,e.def().boss?64:42);}
- SDL_SetRenderDrawColor(renderer,255,120,35,255);for(const auto&s:shots)if(s.alive)rect(renderer,s.x-cameraX,s.y,14,10);
- if(hero.heroIndex==0)SDL_SetRenderDrawColor(renderer,235,45,40,255);else if(hero.heroIndex==1)SDL_SetRenderDrawColor(renderer,40,200,70,255);else SDL_SetRenderDrawColor(renderer,210,110,25,255);
- rect(renderer,hero.x-cameraX,hero.y,hero.heroIndex==2?44:34,hero.heroIndex==2?52:48);
- // HUD bars: hero HP and campaign progress.
+ // Layered retro sky and distant silhouettes, visible even before local sprite imports.
+ SDL_SetRenderDrawColor(renderer,24,55,82,255);for(int i=0;i<10;i++)rect(renderer,i*180.f-std::fmod(cameraX*.18f,180.f),300+(i%3)*35,150,420);
+ SDL_SetRenderDrawColor(renderer,30,82,72,255);for(int i=0;i<12;i++)rect(renderer,i*145.f-std::fmod(cameraX*.35f,145.f),430+(i%2)*24,110,290);
+ for(const auto&o:world.objects)if(!drawWorldObject(o)){
+  // Loud magenta checker-style placeholders mean an expected local art file is missing.
+  SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,o.bounds.x-cameraX,o.bounds.y,o.bounds.w,o.bounds.h);
+  SDL_SetRenderDrawColor(renderer,35,20,45,255);rect(renderer,o.bounds.x-cameraX+4,o.bounds.y+4,std::max(2.f,o.bounds.w*.35f),std::max(2.f,o.bounds.h*.35f));
+ }
+ for(const auto&e:enemies)if(e.alive)drawEnemy(e);
+ SDL_SetRenderDrawColor(renderer,255,145,35,255);for(const auto&s:shots)if(s.alive)rect(renderer,s.x-cameraX,s.y,14,10);
+ drawHero();
  SDL_SetRenderDrawColor(renderer,0,0,0,190);rect(renderer,12,12,430,52);
  SDL_SetRenderDrawColor(renderer,220,50,50,255);rect(renderer,26,28,hero.hp*34,18);
  SDL_SetRenderDrawColor(renderer,70,170,245,255);rect(renderer,250,28,(stageIndex+1)*11,18);
