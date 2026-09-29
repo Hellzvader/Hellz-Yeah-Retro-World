@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Configure
         run: cmake -S engine -B engine/build -A x64 -DSDL_TEST_LIBRARY=OFF -DSDL_TESTS=OFF
       - name: Build engine only
@@ -33,7 +33,7 @@ jobs:
           Copy-Item engine/README.md dist/
           Copy-Item engine/CONTROLS.md dist/ -ErrorAction SilentlyContinue
           Copy-Item engine/NETPLAY.md dist/ -ErrorAction SilentlyContinue
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: HellzYeahRetroEngine-Windows
           path: dist/
