@@ -1,27 +1,25 @@
 #pragma once
 #include <SDL3/SDL.h>
+#include <vector>
 #include "World.hpp"
+#include "Actor.hpp"
+#include "Campaign.hpp"
+#include "LevelFactory.hpp"
+
+struct Projectile { float x{},y{},vx{},life{}; bool alive{true}; };
 
 class Engine {
 public:
-    bool init();
-    int run();
-    void shutdown();
+ bool init(); int run(); void shutdown();
 private:
-    SDL_Window* window{};
-    SDL_Renderer* renderer{};
-    bool running{true};
-    bool playMode{false};
-    World world;
-    float playerX{100}, playerY{400}, vx{}, vy{};
-    bool grounded{};
-    float cameraX{};
-    ObjectType brush{ObjectType::Ground};
+ SDL_Window* window{}; SDL_Renderer* renderer{};
+ bool running{true},playMode{true};
+ World world; HeroActor hero; std::vector<EnemyActor> enemies; std::vector<Projectile> shots;
+ Campaign campaign; int stageIndex{0}; float cameraX{},hurtTimer{},attackTimer{};
+ ObjectType brush{ObjectType::Ground};
 
-    void event(const SDL_Event& e);
-    void update(float dt);
-    void draw();
-    void drawEditor();
-    void drawGame();
-    void placeObject(float x,float y);
+ void loadStage(int index); void event(const SDL_Event& e); void update(float dt);
+ void updateHero(float dt); void updateEnemies(float dt); void updateCombat(float dt);
+ void draw(); void drawEditor(); void drawGame(); void placeObject(float x,float y);
+ void fire(); void smash();
 };
