@@ -107,7 +107,12 @@ void Engine::applyStreamCommand(const StreamCommand& c){
  else if(c.command=="restart")loadStage(stageIndex);
 }
 void Engine::update(float dt){
- gamepads.scan();previousPad=pad;pad=gamepads.read(0);\n if(pad.start&&!previousPad.start)paused=!paused;\n if(paused||ending)return;\n for(const auto&command:streamerBot.poll(dt))applyStreamCommand(command);\n if(playMode){updateHero(dt);updateEnemies(dt);updateCombat(dt);}
+ visualTime+=dt;
+ gamepads.scan();previousPad=pad;pad=gamepads.read(0);
+ if(pad.start&&!previousPad.start)paused=!paused;
+ if(paused||ending)return;
+ for(const auto&command:streamerBot.poll(dt))applyStreamCommand(command);
+ if(playMode){updateHero(dt);updateEnemies(dt);updateCombat(dt);}
  else{const auto*k=SDL_GetKeyboardState(nullptr);if(k[SDL_SCANCODE_A]||k[SDL_SCANCODE_LEFT])cameraX=std::max(0.f,cameraX-500*dt);if(k[SDL_SCANCODE_D]||k[SDL_SCANCODE_RIGHT])cameraX=std::min(std::max(0.f,(float)world.width-1280),cameraX+500*dt);}
 }
 static std::string imported(const std::string& p){return "assets/imported/"+p;}
