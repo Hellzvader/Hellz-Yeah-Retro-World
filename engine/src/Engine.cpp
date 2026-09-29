@@ -11,7 +11,7 @@ bool Engine::init(){
  if(!SDL_Init(SDL_INIT_VIDEO|SDL_INIT_GAMEPAD))return false;
  window=SDL_CreateWindow("Hellz Yeah Retro World - Mario + Bowser Rescue",1280,720,SDL_WINDOW_RESIZABLE);
  if(!window)return false; renderer=SDL_CreateRenderer(window,nullptr);if(!renderer)return false;
- sprites.setRenderer(renderer);gamepads.scan();SDL_SetRenderVSync(renderer,1);loadStage(0);return true;
+ sprites.setRenderer(renderer);gamepads.scan();saveData.load("hellzyeah_save.dat");hero.heroIndex=std::clamp(saveData.selectedHero,0,2);SDL_SetRenderVSync(renderer,1);loadStage(std::clamp(saveData.unlockedStage,0,(int)campaign.stages.size()-1));return true;
 }
 void Engine::shutdown(){if(renderer)SDL_DestroyRenderer(renderer);if(window)SDL_DestroyWindow(window);SDL_Quit();}
 void Engine::loadStage(int i){
@@ -82,6 +82,8 @@ void Engine::updateEnemies(float dt){
 }
 void Engine::updateCombat(float dt){
  attackTimer=std::max(0.f,attackTimer-dt);hurtTimer=std::max(0.f,hurtTimer-dt);
+ bool bossAlive=false;for(const auto&e:enemies)if(e.alive&&e.def().boss)bossAlive=true;
+ if(stageIndex==(int)campaign.stages.size()-1){updateRescue(hero,world,rescue,bossAlive);if(rescue.rescued){ending=true;saveData.peachRescued=true;saveData.unlockedStage=stageIndex;saveData.selectedHero=hero.heroIndex;saveData.save("hellzyeah_save.dat");}}
  for(auto&s:shots)if(s.alive){s.x+=s.vx*dt;s.life-=dt;if(s.life<=0)s.alive=false;for(auto&e:enemies)if(e.alive&&overlapE(s.x,s.y,14,10,e)){e.hp--;s.alive=false;if(e.hp<=0)e.alive=false;break;}}
 }
 void Engine::applyStreamCommand(const StreamCommand& c){
@@ -107,7 +109,7 @@ void Engine::applyStreamCommand(const StreamCommand& c){
  else if(c.command=="restart")loadStage(stageIndex);
 }
 void Engine::update(float dt){
- for(const auto&command:streamerBot.poll(dt))applyStreamCommand(command);\n if(playMode){updateHero(dt);updateEnemies(dt);updateCombat(dt);}
+ gamepads.scan();previousPad=pad;pad=gamepads.read(0);\n if(pad.start&&!previousPad.start)paused=!paused;\n if(paused||ending)return;\n for(const auto&command:streamerBot.poll(dt))applyStreamCommand(command);\n if(playMode){updateHero(dt);updateEnemies(dt);updateCombat(dt);}
  else{const auto*k=SDL_GetKeyboardState(nullptr);if(k[SDL_SCANCODE_A]||k[SDL_SCANCODE_LEFT])cameraX=std::max(0.f,cameraX-500*dt);if(k[SDL_SCANCODE_D]||k[SDL_SCANCODE_RIGHT])cameraX=std::min(std::max(0.f,(float)world.width-1280),cameraX+500*dt);}
 }
 static std::string imported(const std::string& p){return "assets/imported/"+p;}
@@ -164,5 +166,5 @@ void Engine::drawGame(){
  SDL_SetRenderDrawColor(renderer,70,170,245,255);rect(renderer,250,28,(stageIndex+1)*11,18);
 }
 void Engine::drawEditor(){drawGame();SDL_SetRenderDrawColor(renderer,10,10,14,220);rect(renderer,0,0,1280,76);SDL_SetRenderDrawColor(renderer,60,170,240,255);rect(renderer,16,16,210,44);}
-void Engine::draw(){if(playMode)drawGame();else drawEditor();SDL_RenderPresent(renderer);}
+void Engine::draw(){if(playMode)drawGame();else drawEditor();if(paused){SDL_SetRenderDrawColor(renderer,0,0,0,170);rect(renderer,0,0,1280,720);SDL_SetRenderDrawColor(renderer,230,230,230,255);rect(renderer,500,300,280,90);}if(ending){SDL_SetRenderDrawColor(renderer,10,18,42,230);rect(renderer,0,0,1280,720);SDL_SetRenderDrawColor(renderer,245,190,80,255);rect(renderer,390,220,500,220);}SDL_RenderPresent(renderer);}
 int Engine::run(){Uint64 last=SDL_GetTicks();while(running){SDL_Event e;while(SDL_PollEvent(&e))event(e);Uint64 now=SDL_GetTicks();float dt=std::min((now-last)/1000.f,.033f);last=now;update(dt);draw();}return 0;}
