@@ -7,6 +7,53 @@ static bool overlap(float x,float y,float w,float h,const Rect& b){return x<b.x+
 static bool overlapE(float x,float y,float w,float h,const EnemyActor&e){return x<e.x+38&&e.x<x+w&&y<e.y+42&&e.y<y+h;}
 static void rect(SDL_Renderer*r,float x,float y,float w,float h){SDL_FRect q{x,y,w,h};SDL_RenderFillRect(r,&q);}
 
+
+struct ArtColor{Uint8 r,g,b,a;};
+static void px(SDL_Renderer*r,float x,float y,float s,ArtColor c){SDL_SetRenderDrawColor(r,c.r,c.g,c.b,c.a);rect(r,x,y,s,s);}
+static void builtinHero(SDL_Renderer*r,int hero,float x,float y,bool flip){
+ const char* p=hero==2?
+ "..GGGG....\n.GYYYYG...\nGGYYYYGG..\nGGRYYRGG..\nGGYYYYGG..\n.GGGGGG...\n..RRRR....\n.RRRRRR...\nRRRYYRRR..\nRRRYYRRR..\n.RRRRRR...\n..RRRR....\n..R..R....\n.RR..RR...":
+ hero==1?
+ "...GGG....\n..GGGGG...\n..SSSS....\n.SSSSSS...\n.SBSSBS...\n.SSSSSS...\n..BBBB....\n.GGGGGG...\nGGGGGGGG..\nGGG..GGG..\n..BBBB....\n..BBBB....\n..B..B....\n.BB..BB...":
+ "...RRR....\n..RRRRR...\n..SSSS....\n.SSSSSS...\n.SBSSBS...\n.SSSSSS...\n..BBBB....\n.RRRRRR...\nRRRRRRRR..\nRRR..RRR..\n..BBBB....\n..BBBB....\n..B..B....\n.BB..BB...";
+ ArtColor red{220,45,35,255},green{35,180,70,255},skin{244,174,105,255},blue{35,80,205,255},yellow{245,190,45,255},dark{65,35,25,255};
+ float s=hero==2?4.5f:3.5f;int row=0,col=0;
+ for(const char*q=p;*q;q++){if(*q=='\n'){row++;col=0;continue;}char ch=*q;int cc=flip?9-col:col;ArtColor z=ch=='R'?red:ch=='G'?green:ch=='S'?skin:ch=='B'?blue:ch=='Y'?yellow:dark;if(ch!='.')px(r,x+cc*s,y+row*s,s,z);col++;}
+}
+static void builtinEnemy(SDL_Renderer*r,const EnemyActor&e,float x,float y){
+ const bool boss=e.def().boss;const bool fly=e.def().flying;
+ ArtColor body=e.def().id=="king_zing"?ArtColor{245,190,35,255}:e.def().id=="kudgel"?ArtColor{120,80,170,255}:ArtColor{55,175,75,255};
+ ArtColor belly{235,205,120,255},dark{35,45,30,255},white{245,245,230,255},wing{150,210,235,255};
+ float s=boss?7.f:4.f;
+ const char*p=boss?
+ "..BBBBBB..\n.BBBBBBBB.\nBBWWBBWWBB\nBBBBBBBBBB\n.BBYYYYBB.\n.BBBBBBBB.\nBBBBBBBBBB\nBBB....BBB\n.BB....BB.\n.B......B.":
+ fly?
+ ".W......W.\n.W.BBBB.W.\n..BBBBBB..\n.BBWWWWBB.\n.BBBBBBBB.\n..BYYYYB..\n...BBBB...\n..B....B..":
+ "...BBBB...\n..BBBBBB..\n.BBWWWWBB.\n.BBBBBBBB.\n.BBYYYYBB.\n..BBBBBB..\n..BB..BB..\n.BB....BB.";
+ int row=0,col=0;for(const char*q=p;*q;q++){if(*q=='\n'){row++;col=0;continue;}ArtColor z=*q=='B'?body:*q=='Y'?belly:*q=='W'?(fly?wing:white):dark;if(*q!='.')px(r,x+col*s,y+row*s,s,z);col++;}
+}
+static void builtinObject(SDL_Renderer*r,const WorldObject&o,float cameraX){
+ float x=o.bounds.x-cameraX,y=o.bounds.y;
+ if(o.type==ObjectType::Ground||o.type==ObjectType::Platform||o.type==ObjectType::MovingPlatform||o.type==ObjectType::BreakableBlock){
+  SDL_SetRenderDrawColor(r,116,72,42,255);rect(r,x,y,o.bounds.w,o.bounds.h);
+  SDL_SetRenderDrawColor(r,60,160,65,255);rect(r,x,y,o.bounds.w,std::min(8.f,o.bounds.h));
+  SDL_SetRenderDrawColor(r,82,48,32,255);for(float xx=x+8;xx<x+o.bounds.w;xx+=24)rect(r,xx,y+12,8,std::min(8.f,o.bounds.h-12));
+ }else if(o.type==ObjectType::Coin){SDL_SetRenderDrawColor(r,250,205,30,255);rect(r,x+6,y,8,o.bounds.h);rect(r,x,y+6,20,std::max(8.f,o.bounds.h-12));SDL_SetRenderDrawColor(r,255,245,150,255);rect(r,x+5,y+6,4,12);}
+ else if(o.type==ObjectType::Barrel){SDL_SetRenderDrawColor(r,150,83,38,255);rect(r,x+5,y,o.bounds.w-10,o.bounds.h);SDL_SetRenderDrawColor(r,55,35,25,255);rect(r,x,y+7,o.bounds.w,5);rect(r,x,y+o.bounds.h-12,o.bounds.w,5);}
+ else if(o.type==ObjectType::Vine){SDL_SetRenderDrawColor(r,45,165,55,255);rect(r,x+o.bounds.w/2-3,y,6,o.bounds.h);for(float yy=y+12;yy<y+o.bounds.h;yy+=24){rect(r,x,yy,o.bounds.w/2,5);rect(r,x+o.bounds.w/2,yy+10,o.bounds.w/2,5);}}
+ else if(o.type==ObjectType::Water){SDL_SetRenderDrawColor(r,35,130,220,210);rect(r,x,y,o.bounds.w,o.bounds.h);SDL_SetRenderDrawColor(r,120,215,250,255);for(float xx=x;xx<x+o.bounds.w;xx+=32)rect(r,xx,y,18,4);}
+ else if(o.type==ObjectType::Hazard){SDL_SetRenderDrawColor(r,235,70,35,255);for(float xx=x;xx<x+o.bounds.w;xx+=18){rect(r,xx+6,y,6,o.bounds.h);rect(r,xx+3,y+o.bounds.h*.45f,12,o.bounds.h*.55f);}}
+ else if(o.type==ObjectType::Checkpoint){SDL_SetRenderDrawColor(r,225,225,210,255);rect(r,x+4,y,5,o.bounds.h);SDL_SetRenderDrawColor(r,240,55,55,255);rect(r,x+9,y+5,24,16);}
+ else if(o.type==ObjectType::Exit){SDL_SetRenderDrawColor(r,95,58,35,255);rect(r,x,y,o.bounds.w,o.bounds.h);SDL_SetRenderDrawColor(r,25,20,18,255);rect(r,x+13,y+18,o.bounds.w-26,o.bounds.h-18);SDL_SetRenderDrawColor(r,245,200,50,255);rect(r,x+45,y+55,5,5);}
+ else if(o.type==ObjectType::Peach){ArtColor pink{245,110,170,255},skin{245,185,135,255},gold{250,205,40,255};for(int i=0;i<5;i++)px(r,x+10+i*4,y+8,4,gold);for(int i=0;i<4;i++)px(r,x+12+i*4,y+16,4,skin);SDL_SetRenderDrawColor(r,pink.r,pink.g,pink.b,255);rect(r,x+8,y+32,28,34);rect(r,x,y+54,44,16);}
+}
+static void builtinPower(SDL_Renderer*r,PowerupType t,float x,float y){
+ ArtColor red{230,45,40,255},white{245,245,235,255},gold{250,205,35,255},pink{235,70,110,255};
+ if(t==PowerupType::Star){SDL_SetRenderDrawColor(r,gold.r,gold.g,gold.b,255);rect(r,x+10,y,12,32);rect(r,x,y+10,32,12);rect(r,x+5,y+5,22,22);}
+ else if(t==PowerupType::Heart){SDL_SetRenderDrawColor(r,pink.r,pink.g,pink.b,255);rect(r,x+4,y+5,10,10);rect(r,x+18,y+5,10,10);rect(r,x+8,y+12,16,12);rect(r,x+12,y+22,8,8);}
+ else{ArtColor cap=t==PowerupType::FireFlower?gold:red;SDL_SetRenderDrawColor(r,cap.r,cap.g,cap.b,255);rect(r,x+3,y+4,26,14);rect(r,x+8,y,16,22);SDL_SetRenderDrawColor(r,white.r,white.g,white.b,255);rect(r,x+8,y+6,5,5);rect(r,x+20,y+6,5,5);SDL_SetRenderDrawColor(r,60,175,70,255);rect(r,x+14,y+20,5,12);}
+}
+
 bool Engine::init(){
  if(!SDL_Init(SDL_INIT_VIDEO|SDL_INIT_GAMEPAD))return false;
  window=SDL_CreateWindow("Hellz Yeah Retro World - Mario + Bowser Rescue",1280,720,SDL_WINDOW_RESIZABLE);
@@ -229,28 +276,24 @@ void Engine::drawHero(){
  const VisualDef*v=visualFor(key);
  if(v&&sprites.draw("hero_"+key,imported(v->path),v->clip,visualTime,hero.x-cameraX,hero.y-(v->drawH-48),v->drawW,v->drawH,hero.facing<0))return;
  // Missing art is intentionally conspicuous in development builds.
- SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,hero.x-cameraX,hero.y,40,48);
+ builtinHero(renderer,hero.heroIndex,hero.x-cameraX,hero.y,hero.facing<0);
 }
 void Engine::drawEnemy(const EnemyActor&e){
  const VisualDef*v=visualFor(e.def().id);
  if(v&&sprites.draw("enemy_"+e.def().id,imported(v->path),v->clip,visualTime,e.x-cameraX,e.y-(v->drawH-42),v->drawW,v->drawH,e.vx>0))return;
- SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,e.x-cameraX,e.y,e.def().boss?80.f:50.f,e.def().boss?80.f:50.f);
+ builtinEnemy(renderer,e,e.x-cameraX,e.y);
 }
 void Engine::drawGame(){
  SDL_SetRenderDrawColor(renderer,15,27,48,255);SDL_RenderClear(renderer);
  // Layered retro sky and distant silhouettes, visible even before local sprite imports.
  SDL_SetRenderDrawColor(renderer,24,55,82,255);for(int i=0;i<10;i++)rect(renderer,i*180.f-std::fmod(cameraX*.18f,180.f),300+(i%3)*35,150,420);
  SDL_SetRenderDrawColor(renderer,30,82,72,255);for(int i=0;i<12;i++)rect(renderer,i*145.f-std::fmod(cameraX*.35f,145.f),430+(i%2)*24,110,290);
- for(const auto&o:world.objects)if(!drawWorldObject(o)){
-  // Loud magenta checker-style placeholders mean an expected local art file is missing.
-  SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,o.bounds.x-cameraX,o.bounds.y,o.bounds.w,o.bounds.h);
-  SDL_SetRenderDrawColor(renderer,35,20,45,255);rect(renderer,o.bounds.x-cameraX+4,o.bounds.y+4,std::max(2.f,o.bounds.w*.35f),std::max(2.f,o.bounds.h*.35f));
- }
+ for(const auto&o:world.objects)if(!drawWorldObject(o))builtinObject(renderer,o,cameraX);
  for(const auto&m:movingPlatforms){SDL_SetRenderDrawColor(renderer,110,110,120,255);rect(renderer,m.bounds.x-cameraX,m.bounds.y,m.bounds.w,m.bounds.h);}
- for(const auto&b:barrels)if(b.active){SpriteClip bc{32,32,1,1};if(!sprites.draw("barrel_live",imported("props/barrel.bmp"),bc,visualTime,b.x-cameraX,b.y,42,50)){SDL_SetRenderDrawColor(renderer,150,92,45,255);rect(renderer,b.x-cameraX,b.y,42,50);}}
+ for(const auto&b:barrels)if(b.active){SpriteClip bc{32,32,1,1};if(!sprites.draw("barrel_live",imported("props/barrel.bmp"),bc,visualTime,b.x-cameraX,b.y,42,50)){WorldObject bo{ObjectType::Barrel,{b.x,b.y,42,50},"Barrel"};builtinObject(renderer,bo,cameraX);}}
  for(const auto&p:powerups)if(p.active){
   const char*file=p.type==PowerupType::Mushroom?"mushroom.bmp":p.type==PowerupType::FireFlower?"fireflower.bmp":p.type==PowerupType::Star?"star.bmp":p.type==PowerupType::Heart?"heart.bmp":"banana.bmp";
-  SpriteClip pc{32,32,1,1};if(!sprites.draw(std::string("power_")+file,imported(std::string("items/")+file),pc,visualTime,p.x-cameraX,p.y,32,32)){SDL_SetRenderDrawColor(renderer,255,215,40,255);rect(renderer,p.x-cameraX,p.y,30,30);}
+  SpriteClip pc{32,32,1,1};if(!sprites.draw(std::string("power_")+file,imported(std::string("items/")+file),pc,visualTime,p.x-cameraX,p.y,32,32))builtinPower(renderer,p.type,p.x-cameraX,p.y);
  }
  for(const auto&e:enemies)if(e.alive)drawEnemy(e);
  SDL_SetRenderDrawColor(renderer,255,145,35,255);for(const auto&s:shots)if(s.alive)rect(renderer,s.x-cameraX,s.y,14,10);
