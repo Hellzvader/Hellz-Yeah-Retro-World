@@ -225,22 +225,16 @@ void Engine::drawHero(){
  const char*name=hero.heroIndex==0?"mario":hero.heroIndex==1?"luigi":"bowser";
  const bool moving=std::abs(hero.vx)>5;
  const char*state=!hero.grounded?"jump":moving?"run":"idle";
- std::string id=std::string("hero_")+name+"_"+state;
- std::string path=imported(std::string("heroes/")+name+"_"+state+".bmp");
- SpriteClip clip{hero.heroIndex==2?48:32,hero.heroIndex==2?48:48,moving?4:1,moving?10.f:1.f};
- float w=hero.heroIndex==2?52.f:40.f,h=hero.heroIndex==2?56.f:56.f;
- if(!sprites.draw(id,path,clip,visualTime,hero.x-cameraX,hero.y-(h-48),w,h,hero.facing<0)){
-  SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,hero.x-cameraX,hero.y,w,h);
- }
+ std::string key=std::string(name)+"_"+state;
+ const VisualDef*v=visualFor(key);
+ if(v&&sprites.draw("hero_"+key,imported(v->path),v->clip,visualTime,hero.x-cameraX,hero.y-(v->drawH-48),v->drawW,v->drawH,hero.facing<0))return;
+ // Missing art is intentionally conspicuous in development builds.
+ SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,hero.x-cameraX,hero.y,40,48);
 }
 void Engine::drawEnemy(const EnemyActor&e){
- std::string folder=e.def().boss?"bosses/":e.def().family==EnemyFamily::Kong?"enemies/kong/":"enemies/mushroom/";
- std::string id="enemy_"+e.def().id,path=imported(folder+e.def().id+".bmp");
- SpriteClip clip{e.def().boss?64:48,e.def().boss?64:48,4,8};
- float size=e.def().boss?80.f:50.f;
- if(!sprites.draw(id,path,clip,visualTime,e.x-cameraX,e.y-(size-42),size,size,e.vx>0)){
-  SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,e.x-cameraX,e.y,size,size);
- }
+ const VisualDef*v=visualFor(e.def().id);
+ if(v&&sprites.draw("enemy_"+e.def().id,imported(v->path),v->clip,visualTime,e.x-cameraX,e.y-(v->drawH-42),v->drawW,v->drawH,e.vx>0))return;
+ SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,e.x-cameraX,e.y,e.def().boss?80.f:50.f,e.def().boss?80.f:50.f);
 }
 void Engine::drawGame(){
  SDL_SetRenderDrawColor(renderer,15,27,48,255);SDL_RenderClear(renderer);
