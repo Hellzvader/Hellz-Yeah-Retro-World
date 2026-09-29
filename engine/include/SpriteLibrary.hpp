@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL3/SDL.h>
 #include <algorithm>
+#include <cctype>
 #include <string>
 #include <unordered_map>
 
@@ -15,9 +16,14 @@ public:
   if(!renderer)return nullptr;
   std::string resolved=path;
   if(!SDL_GetPathInfo(resolved.c_str(),nullptr)){if(char*base=SDL_GetBasePath()){resolved=std::string(base)+path;SDL_free(base);}}
-  SDL_Surface*s=SDL_LoadBMP(resolved.c_str());if(!s)return nullptr;
-  // Imported sheets may use magenta as a transparency key.
-  SDL_SetSurfaceColorKey(s,true,SDL_MapSurfaceRGB(s,255,0,255));
+  SDL_Surface*s=nullptr;
+  auto dot=resolved.find_last_of('.');
+  std::string ext=dot==std::string::npos?"":resolved.substr(dot);
+  std::transform(ext.begin(),ext.end(),ext.begin(),[](unsigned char ch){return (char)std::tolower(ch);});
+  if(ext==".png")s=SDL_LoadPNG(resolved.c_str());else s=SDL_LoadBMP(resolved.c_str());
+  if(!s)return nullptr;
+  // BMP strips can use magenta as a transparency key; PNG keeps native alpha.
+  if(ext!=".png")SDL_SetSurfaceColorKey(s,true,SDL_MapSurfaceRGB(s,255,0,255));
   SDL_Texture*t=SDL_CreateTextureFromSurface(renderer,s);SDL_DestroySurface(s);
   if(t){SDL_SetTextureScaleMode(t,SDL_SCALEMODE_NEAREST);textures[id]=t;}return t;
  }
