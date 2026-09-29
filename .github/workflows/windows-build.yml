@@ -32,7 +32,10 @@ jobs:
           if ($dll) { Copy-Item $dll.FullName dist/SDL3.dll }
           Copy-Item engine/README.md dist/
           Copy-Item engine/CONTROLS.md dist/ -ErrorAction SilentlyContinue
-          Copy-Item engine/NETPLAY.md dist/ -ErrorAction SilentlyContinue\n          New-Item -ItemType Directory -Force dist/assets/imported | Out-Null\n          Copy-Item engine/assets/imported/README.md dist/assets/imported/README.md
+          Copy-Item engine/NETPLAY.md dist/ -ErrorAction SilentlyContinue
+          Copy-Item engine/STREAMERBOT.md dist/ -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force dist/assets/imported | Out-Null
+          Copy-Item engine/assets/imported/README.md dist/assets/imported/README.md
       - uses: actions/upload-artifact@v5
         with:
           name: HellzYeahRetroEngine-Windows
