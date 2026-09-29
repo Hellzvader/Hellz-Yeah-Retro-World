@@ -17,12 +17,17 @@ void Engine::shutdown(){if(renderer)SDL_DestroyRenderer(renderer);if(window)SDL_
 void Engine::loadStage(int i){
  stageIndex=(i+(int)campaign.stages.size())%campaign.stages.size();
  auto b=buildStage(stageIndex);world=std::move(b.world);enemies=std::move(b.enemies);
- hero.x=b.spawnX;hero.y=b.spawnY;hero.vx=hero.vy=0;hero.hp=hero.def().hp;shots.clear();cameraX=0;
+ hero.x=b.spawnX;hero.y=b.spawnY;hero.vx=hero.vy=0;hero.hp=hero.def().hp;shots.clear();powerups.clear();firePower=false;starTimer=0;cameraX=0;
+ // Seed useful pickups through every stage so power-ups are part of normal play.
+ powerups.push_back({PowerupType::Mushroom,b.spawnX+360,520,true});
+ powerups.push_back({PowerupType::FireFlower,b.spawnX+760,500,true});
+ powerups.push_back({PowerupType::Star,b.spawnX+1180,480,true});
+ powerups.push_back({PowerupType::Heart,b.spawnX+1580,500,true});
  std::string title="Hellz Yeah Retro World - "+campaign.stages[stageIndex].title+" - "+hero.def().name;
  SDL_SetWindowTitle(window,title.c_str());
 }
 void Engine::fire(){
- if(!hero.def().fire||attackTimer>0)return;
+ if((!hero.def().fire&&!firePower)||attackTimer>0)return;
  shots.push_back({hero.x+(hero.facing>0?34:-12),hero.y+18,hero.facing*520,1.5f,true});attackTimer=.28f;
 }
 void Engine::smash(){
@@ -101,6 +106,15 @@ void Engine::updateHero(float dt){
  }
  cameraX=std::clamp(hero.x-450.f,0.f,std::max(0.f,(float)world.width-1280));
 }
+void Engine::updatePowerups(float dt){
+ starTimer=std::max(0.f,starTimer-dt);
+ for(auto&p:powerups)if(p.active&&overlap(hero.x,hero.y,34,48,Rect{p.x,p.y,30,30})){
+  if(p.type==PowerupType::FireFlower){firePower=true;hero.hp=std::min(hero.def().hp,hero.hp+1);}
+  else if(p.type==PowerupType::Star){starTimer=8.f;}
+  else applyPowerup(hero,p.type);
+  p.active=false;
+ }
+}
 void Engine::updateEnemies(float dt){
  for(auto&e:enemies)if(e.alive){
   e.vy+=e.def().flying?0:1300*dt;e.x+=e.vx*dt;e.y+=e.vy*dt;
@@ -108,8 +122,10 @@ void Engine::updateEnemies(float dt){
   else for(const auto&o:world.objects)if((o.type==ObjectType::Ground||o.type==ObjectType::Platform)&&overlap(e.x,e.y,38,42,o.bounds)&&e.vy>=0){e.y=o.bounds.y-42;e.vy=0;}
   if(e.x<40||e.x>world.width-40)e.vx=-e.vx;
   if(overlapE(hero.x,hero.y,34,48,e)){
-   if(hero.vy>80&&hero.y+43<e.y+16){e.hp-=hero.def().smash?2:1;hero.vy=-330;if(e.hp<=0)e.alive=false;}
-   else if(hurtTimer<=0){hero.hp--;hurtTimer=1.2f;hero.vy=-330;if(hero.hp<=0)loadStage(stageIndex);}
+   if(starTimer>0){e.alive=false;hero.vy=-180;}
+   else if(hero.vy>70&&hero.y+42<e.y+18){e.hp-=hero.def().smash?2:1;hero.vy=pad.jump?-390.f:-315.f;if(e.hp<=0)e.alive=false;}
+   else if(hurtTimer<=0){hero.hp--;hurtTimer=1.2f;hero.vx=-hero.facing*240.f;hero.vy=-330;if(hero.hp<=0)loadStage(stageIndex);}
+  }
   }
  }
 }
@@ -147,7 +163,7 @@ void Engine::update(float dt){
  if(pad.start&&!previousPad.start)paused=!paused;
  if(paused||ending)return;
  for(const auto&command:streamerBot.poll(dt))applyStreamCommand(command);
- if(playMode){updateHero(dt);updateEnemies(dt);updateCombat(dt);}
+ if(playMode){updateHero(dt);updatePowerups(dt);updateEnemies(dt);updateCombat(dt);}
  else{const auto*k=SDL_GetKeyboardState(nullptr);if(k[SDL_SCANCODE_A]||k[SDL_SCANCODE_LEFT])cameraX=std::max(0.f,cameraX-500*dt);if(k[SDL_SCANCODE_D]||k[SDL_SCANCODE_RIGHT])cameraX=std::min(std::max(0.f,(float)world.width-1280),cameraX+500*dt);}
 }
 static std::string imported(const std::string& p){return "assets/imported/"+p;}
@@ -195,6 +211,10 @@ void Engine::drawGame(){
   // Loud magenta checker-style placeholders mean an expected local art file is missing.
   SDL_SetRenderDrawColor(renderer,245,80,180,255);rect(renderer,o.bounds.x-cameraX,o.bounds.y,o.bounds.w,o.bounds.h);
   SDL_SetRenderDrawColor(renderer,35,20,45,255);rect(renderer,o.bounds.x-cameraX+4,o.bounds.y+4,std::max(2.f,o.bounds.w*.35f),std::max(2.f,o.bounds.h*.35f));
+ }
+ for(const auto&p:powerups)if(p.active){
+  const char*file=p.type==PowerupType::Mushroom?"mushroom.bmp":p.type==PowerupType::FireFlower?"fireflower.bmp":p.type==PowerupType::Star?"star.bmp":p.type==PowerupType::Heart?"heart.bmp":"banana.bmp";
+  SpriteClip pc{32,32,1,1};if(!sprites.draw(std::string("power_")+file,imported(std::string("items/")+file),pc,visualTime,p.x-cameraX,p.y,32,32)){SDL_SetRenderDrawColor(renderer,255,215,40,255);rect(renderer,p.x-cameraX,p.y,30,30);}
  }
  for(const auto&e:enemies)if(e.alive)drawEnemy(e);
  SDL_SetRenderDrawColor(renderer,255,145,35,255);for(const auto&s:shots)if(s.alive)rect(renderer,s.x-cameraX,s.y,14,10);
