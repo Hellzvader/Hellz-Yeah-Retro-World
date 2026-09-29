@@ -35,7 +35,7 @@ void Engine::event(const SDL_Event&e){
   case SDLK_ESCAPE:if(!playMode)playMode=true;else running=false;break;
   case SDLK_F5:playMode=!playMode;break;
   case SDLK_Q:hero.switchPrev();break;case SDLK_E:hero.switchNext();break;
-  case SDLK_X:case SDLK_J:fire();break;case SDLK_C:case SDLK_K:smash();break;
+  case SDLK_X:fire();break;case SDLK_C:smash();break;\n  case SDLK_J:{int n=(int)enemies.size()%4+1;for(int z=0;z<n;z++){EnemyActor a;a.defIndex=8+(z%8);a.x=hero.x+260+z*60;a.y=hero.y-80;a.hp=a.def().hp;a.vx=-a.def().speed;enemies.push_back(a);}break;}\n  case SDLK_K:for(int z=0;z<5;z++){EnemyActor a;a.defIndex=8+(z%8);a.x=hero.x+260+z*60;a.y=hero.y-80-(z%2)*35;a.hp=a.def().hp;a.vx=-a.def().speed;enemies.push_back(a);}break;\n  case SDLK_L:for(int z=0;z<10;z++){EnemyActor a;a.defIndex=8+(z%8);a.x=hero.x+240+z*55;a.y=hero.y-90-(z%3)*35;a.hp=a.def().hp;a.vx=-a.def().speed;enemies.push_back(a);}break;
   case SDLK_R:loadStage(stageIndex);break;
   case SDLK_1:brush=ObjectType::Ground;break;case SDLK_2:brush=ObjectType::Platform;break;
   case SDLK_3:brush=ObjectType::Enemy;break;case SDLK_4:brush=ObjectType::Coin;break;
