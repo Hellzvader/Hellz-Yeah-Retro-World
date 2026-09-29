@@ -58,8 +58,9 @@ void Engine::updateHero(float dt){
  float d=(pad.right?1.f:0.f)-(pad.left?1.f:0.f);
  if(d)hero.facing=d;
  const float maxSpeed=hero.def().speed;
- const float accel=hero.grounded?1550.f:820.f;
- const float brake=hero.grounded?1900.f:520.f;
+ // Mario is balanced, Luigi is floatier/slipperier, Bowser is heavy with stronger traction.
+ const float accel=hero.heroIndex==2?(hero.grounded?1850.f:650.f):hero.heroIndex==1?(hero.grounded?1320.f:900.f):(hero.grounded?1550.f:820.f);
+ const float brake=hero.heroIndex==2?(hero.grounded?2350.f:620.f):hero.heroIndex==1?(hero.grounded?1450.f:460.f):(hero.grounded?1900.f:520.f);
  const float target=d*maxSpeed;
  if(d!=0.f){
   if(hero.vx<target)hero.vx=std::min(target,hero.vx+accel*dt);
@@ -74,8 +75,10 @@ void Engine::updateHero(float dt){
  // Releasing jump early cuts upward velocity for short hops.
  if(jumpReleased&&hero.vy<0)hero.vy*=0.45f;
  // Slightly lighter gravity while holding jump upward, heavier on the fall.
- const float gravity=(pad.jump&&hero.vy<0)?1180.f:1650.f;
- hero.vy=std::min(hero.vy+gravity*dt,900.f);
+ const float baseUp=hero.heroIndex==1?1020.f:hero.heroIndex==2?1380.f:1180.f;
+ const float baseDown=hero.heroIndex==1?1450.f:hero.heroIndex==2?1900.f:1650.f;
+ const float gravity=(pad.jump&&hero.vy<0)?baseUp:baseDown;
+ hero.vy=std::min(hero.vy+gravity*dt,hero.heroIndex==2?1050.f:900.f);
  if(pad.attack&&!previousPad.attack)fire();
  if(pad.special&&!previousPad.special)smash();
  if(pad.prevHero&&!previousPad.prevHero){hero.switchPrev();saveData.selectedHero=hero.heroIndex;}
@@ -109,8 +112,8 @@ void Engine::updateHero(float dt){
 void Engine::updatePowerups(float dt){
  starTimer=std::max(0.f,starTimer-dt);
  for(auto&p:powerups)if(p.active&&overlap(hero.x,hero.y,34,48,Rect{p.x,p.y,30,30})){
-  if(p.type==PowerupType::FireFlower){firePower=true;hero.hp=std::min(hero.def().hp,hero.hp+1);}
-  else if(p.type==PowerupType::Star){starTimer=8.f;}
+  if(p.type==PowerupType::FireFlower){firePower=true;hero.hp=std::min(hero.def().hp,hero.hp+1);attackTimer=0;}
+  else if(p.type==PowerupType::Star){starTimer=8.f;hurtTimer=0;}
   else applyPowerup(hero,p.type);
   p.active=false;
  }
