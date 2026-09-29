@@ -11,6 +11,7 @@
 #include "PeachRescue.hpp"
 #include "SaveData.hpp"
 #include "Powerups.hpp"
+#include "EnemyAI.hpp"
 
 struct Projectile { float x{},y{},vx{},life{}; bool alive{true}; };
 
