@@ -3,3 +3,7 @@
 *.zip
 tikfinity_queue.txt
 .DS_Store
+
+# User-supplied / locally extracted game artwork. Never commit these.
+engine/assets/imported/**
+!engine/assets/imported/README.md
