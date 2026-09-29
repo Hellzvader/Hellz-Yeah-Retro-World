@@ -88,7 +88,7 @@ void Engine::updateHero(float dt){
  if(pad.attack&&!previousPad.attack)fire();
  if(pad.special&&!previousPad.special){
   smash();
-  if(hero.def().id=="bowser")for(auto&o:world.objects)if(o.type==ObjectType::BreakableBlock&&o.bounds.w>0&&std::abs((o.bounds.x+o.bounds.w*.5f)-(hero.x+16))<85&&std::abs((o.bounds.y+o.bounds.h*.5f)-(hero.y+24))<75){o.bounds.w=0;o.bounds.h=0;}
+  if(hero.def().id==HeroId::Bowser)for(auto&o:world.objects)if(o.type==ObjectType::BreakableBlock&&o.bounds.w>0&&std::abs((o.bounds.x+o.bounds.w*.5f)-(hero.x+16))<85&&std::abs((o.bounds.y+o.bounds.h*.5f)-(hero.y+24))<75){o.bounds.w=0;o.bounds.h=0;}
  }
  if(pad.interact&&!previousPad.interact){
   if(carriedBarrel>=0&&carriedBarrel<(int)barrels.size()){throwBarrel(barrels[carriedBarrel],hero);carriedBarrel=-1;}
