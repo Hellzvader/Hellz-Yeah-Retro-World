@@ -8,6 +8,8 @@
 #include "SpriteLibrary.hpp"
 #include "Gamepad.hpp"
 #include "StreamerBotBridge.hpp"
+#include "PeachRescue.hpp"
+#include "SaveData.hpp"
 
 struct Projectile { float x{},y{},vx{},life{}; bool alive{true}; };
 
@@ -20,6 +22,9 @@ private:
  GamepadManager gamepads;
  PadInput pad{},previousPad{};
  StreamerBotBridge streamerBot;
+ RescueState rescue;
+ SaveData saveData;
+ bool paused{false},ending{false};
  bool running{true},playMode{true};
  World world; HeroActor hero; std::vector<EnemyActor> enemies; std::vector<Projectile> shots;
  Campaign campaign; int stageIndex{0}; float cameraX{},hurtTimer{},attackTimer{},visualTime{};
