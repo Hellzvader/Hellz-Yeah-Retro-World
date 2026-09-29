@@ -6,6 +6,7 @@
 #include "Campaign.hpp"
 #include "LevelFactory.hpp"
 #include "SpriteLibrary.hpp"
+#include "Gamepad.hpp"
 
 struct Projectile { float x{},y{},vx{},life{}; bool alive{true}; };
 
@@ -15,6 +16,8 @@ public:
 private:
  SDL_Window* window{}; SDL_Renderer* renderer{};
  SpriteLibrary sprites;
+ GamepadManager gamepads;
+ PadInput pad{},previousPad{};
  bool running{true},playMode{true};
  World world; HeroActor hero; std::vector<EnemyActor> enemies; std::vector<Projectile> shots;
  Campaign campaign; int stageIndex{0}; float cameraX{},hurtTimer{},attackTimer{},visualTime{};
