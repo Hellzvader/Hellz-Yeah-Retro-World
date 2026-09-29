@@ -18,6 +18,7 @@ void Engine::loadStage(int i){
  stageIndex=(i+(int)campaign.stages.size())%campaign.stages.size();
  auto b=buildStage(stageIndex);world=std::move(b.world);enemies=std::move(b.enemies);
  hero.x=b.spawnX;hero.y=b.spawnY;hero.vx=hero.vy=0;hero.hp=hero.def().hp;shots.clear();powerups.clear();firePower=false;starTimer=0;cameraX=0;
+ traversal=TraversalState{};traversal.checkpointX=b.spawnX;traversal.checkpointY=b.spawnY;
  // Seed useful pickups through every stage so power-ups are part of normal play.
  powerups.push_back({PowerupType::Mushroom,b.spawnX+360,520,true});
  powerups.push_back({PowerupType::FireFlower,b.spawnX+760,500,true});
@@ -96,7 +97,7 @@ void Engine::updateHero(float dt){
  for(const auto&o:world.objects)if(o.type==ObjectType::Ground||o.type==ObjectType::Platform)
   if(overlap(hero.x,hero.y,34,48,o.bounds)&&hero.vy>=0&&oldY+48<=o.bounds.y+8){hero.y=o.bounds.y-48;hero.vy=0;hero.grounded=true;}
  hero.x=std::clamp(hero.x,0.f,std::max(0.f,(float)world.width-34.f));
- if(hero.y>800)loadStage(stageIndex);
+ if(hero.y>800)respawnAtCheckpoint(hero,traversal);
  for(const auto&o:world.objects)if(o.type==ObjectType::Exit&&overlap(hero.x,hero.y,34,48,o.bounds)){
   bool bossAlive=false;for(auto&e:enemies)if(e.alive&&e.def().boss)bossAlive=true;
   if(!bossAlive){
@@ -117,6 +118,16 @@ void Engine::updatePowerups(float dt){
   else applyPowerup(hero,p.type);
   p.active=false;
  }
+}
+void Engine::updateStageMechanics(float dt){
+ updateTraversal(hero,traversal,world,dt,pad.up,pad.down);
+ for(const auto&o:world.objects){
+  if(o.type==ObjectType::Hazard&&inside(hero,o.bounds)&&hurtTimer<=0&&starTimer<=0){
+   hero.hp--;hurtTimer=1.2f;hero.vy=-360.f;
+   if(hero.hp<=0)respawnAtCheckpoint(hero,traversal);
+  }
+ }
+ if(hero.y>800)respawnAtCheckpoint(hero,traversal);
 }
 void Engine::updateEnemies(float dt){
  const float aiTime=visualTime;
@@ -167,7 +178,7 @@ void Engine::update(float dt){
  if(pad.start&&!previousPad.start)paused=!paused;
  if(paused||ending)return;
  for(const auto&command:streamerBot.poll(dt))applyStreamCommand(command);
- if(playMode){updateHero(dt);updatePowerups(dt);updateEnemies(dt);updateCombat(dt);}
+ if(playMode){updateHero(dt);updateStageMechanics(dt);updatePowerups(dt);updateEnemies(dt);updateCombat(dt);}
  else{const auto*k=SDL_GetKeyboardState(nullptr);if(k[SDL_SCANCODE_A]||k[SDL_SCANCODE_LEFT])cameraX=std::max(0.f,cameraX-500*dt);if(k[SDL_SCANCODE_D]||k[SDL_SCANCODE_RIGHT])cameraX=std::min(std::max(0.f,(float)world.width-1280),cameraX+500*dt);}
 }
 static std::string imported(const std::string& p){return "assets/imported/"+p;}
