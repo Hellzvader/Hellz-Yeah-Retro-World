@@ -62,3 +62,16 @@ This directory is ignored by Git except for this README. Proprietary/ripped grap
 - props/exit.bmp
 
 Sheets should be converted/prepared as equal-sized horizontal BMP frame strips. Magenta RGB(255,0,255) is treated as transparent. Nearest-neighbor scaling is used for crisp pixel art.
+
+
+## Active gameplay animation states
+
+The runtime manifest now supports the cleaned gameplay-only source-sheet states being prepared for local visual builds:
+
+- Mario: idle / run / jump
+- Luigi: idle / run / jump
+- Bowser: idle / run / jump / fire / smash
+- King Zing: flight / attack / hurt
+- Kudgel: walk / jump / club smash
+
+Special/gag poses (including the Mario mop/cleaning frames) are intentionally excluded from normal gameplay animation sets.
