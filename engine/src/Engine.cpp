@@ -10,21 +10,21 @@ static void rect(SDL_Renderer*r,float x,float y,float w,float h){SDL_FRect q{x,y
 
 struct ArtColor{Uint8 r,g,b,a;};
 static void px(SDL_Renderer*r,float x,float y,float s,ArtColor c){SDL_SetRenderDrawColor(r,c.r,c.g,c.b,c.a);rect(r,x,y,s,s);}
-static void builtinHero(SDL_Renderer*r,int hero,float x,float y,bool flip){
+static void builtinHero(SDL_Renderer*r,int hero,float x,float y,bool flip,int frame=0){
  const char* p=hero==2?
  "..GGGG....\n.GYYYYG...\nGGYYYYGG..\nGGRYYRGG..\nGGYYYYGG..\n.GGGGGG...\n..RRRR....\n.RRRRRR...\nRRRYYRRR..\nRRRYYRRR..\n.RRRRRR...\n..RRRR....\n..R..R....\n.RR..RR...":
  hero==1?
  "...GGG....\n..GGGGG...\n..SSSS....\n.SSSSSS...\n.SBSSBS...\n.SSSSSS...\n..BBBB....\n.GGGGGG...\nGGGGGGGG..\nGGG..GGG..\n..BBBB....\n..BBBB....\n..B..B....\n.BB..BB...":
  "...RRR....\n..RRRRR...\n..SSSS....\n.SSSSSS...\n.SBSSBS...\n.SSSSSS...\n..BBBB....\n.RRRRRR...\nRRRRRRRR..\nRRR..RRR..\n..BBBB....\n..BBBB....\n..B..B....\n.BB..BB...";
  ArtColor red{220,45,35,255},green{35,180,70,255},skin{244,174,105,255},blue{35,80,205,255},yellow{245,190,45,255},dark{65,35,25,255};
- float s=hero==2?4.5f:3.5f;int row=0,col=0;
+ float s=hero==2?4.5f:3.5f;if(frame&1)y-=2;int row=0,col=0;
  for(const char*q=p;*q;q++){if(*q=='\n'){row++;col=0;continue;}char ch=*q;int cc=flip?9-col:col;ArtColor z=ch=='R'?red:ch=='G'?green:ch=='S'?skin:ch=='B'?blue:ch=='Y'?yellow:dark;if(ch!='.')px(r,x+cc*s,y+row*s,s,z);col++;}
 }
-static void builtinEnemy(SDL_Renderer*r,const EnemyActor&e,float x,float y){
+static void builtinEnemy(SDL_Renderer*r,const EnemyActor&e,float x,float y,int frame=0){
  const bool boss=e.def().boss;const bool fly=e.def().flying;
  ArtColor body=e.def().id=="king_zing"?ArtColor{245,190,35,255}:e.def().id=="kudgel"?ArtColor{120,80,170,255}:ArtColor{55,175,75,255};
  ArtColor belly{235,205,120,255},dark{35,45,30,255},white{245,245,230,255},wing{150,210,235,255};
- float s=boss?7.f:4.f;
+ float s=boss?7.f:4.f;if((frame&1)&&!boss)y-=2;if(boss&&((frame/3)&1))x+=2;
  const char*p=boss?
  "..BBBBBB..\n.BBBBBBBB.\nBBWWBBWWBB\nBBBBBBBBBB\n.BBYYYYBB.\n.BBBBBBBB.\nBBBBBBBBBB\nBBB....BBB\n.BB....BB.\n.B......B.":
  fly?
@@ -204,8 +204,9 @@ void Engine::updateStageMechanics(float dt){
 }
 void Engine::updateEnemies(float dt){
  const float aiTime=visualTime;
- for(auto&e:enemies)if(e.alive){
-  enemyBrain(e,hero.x,hero.y,dt,aiTime);
+ for(int ei=0;ei<(int)enemies.size();++ei){auto&e=enemies[ei];if(!e.alive)continue;
+  if(e.def().boss){if(ei>=(int)bossStates.size())bossStates.resize(enemies.size());updateBoss(e,bossStates[ei],hero.x,dt);}
+  else enemyBrain(e,hero.x,hero.y,dt,aiTime);
   e.vy+=e.def().flying?0:1300*dt;e.x+=e.vx*dt;e.y+=e.vy*dt;
    if(!e.def().flying)for(const auto&o:world.objects)if((o.type==ObjectType::Ground||o.type==ObjectType::Platform)&&overlap(e.x,e.y,38,42,o.bounds)&&e.vy>=0){e.y=o.bounds.y-42;e.vy=0;}
   if(e.x<40||e.x>world.width-40)e.vx=-e.vx;
@@ -276,12 +277,12 @@ void Engine::drawHero(){
  const VisualDef*v=visualFor(key);
  if(v&&sprites.draw("hero_"+key,imported(v->path),v->clip,visualTime,hero.x-cameraX,hero.y-(v->drawH-48),v->drawW,v->drawH,hero.facing<0))return;
  // Missing art is intentionally conspicuous in development builds.
- builtinHero(renderer,hero.heroIndex,hero.x-cameraX,hero.y,hero.facing<0);
+ builtinHero(renderer,hero.heroIndex,hero.x-cameraX,hero.y,hero.facing<0,(int)(visualTime*8));
 }
 void Engine::drawEnemy(const EnemyActor&e){
  const VisualDef*v=visualFor(e.def().id);
  if(v&&sprites.draw("enemy_"+e.def().id,imported(v->path),v->clip,visualTime,e.x-cameraX,e.y-(v->drawH-42),v->drawW,v->drawH,e.vx>0))return;
- builtinEnemy(renderer,e,e.x-cameraX,e.y);
+ builtinEnemy(renderer,e,e.x-cameraX,e.y,(int)(visualTime*7));
 }
 void Engine::drawGame(){
  // Stage-themed parallax backgrounds: bright Mushroom Kingdom, jungle, mine, ship, factory and fortress.
@@ -305,7 +306,7 @@ void Engine::drawGame(){
  drawHero();
  // Pixel HUD: hero portrait, heart health pips, power state and campaign progress.
  SDL_SetRenderDrawColor(renderer,15,18,28,220);rect(renderer,12,12,500,64);
- builtinHero(renderer,hero.heroIndex,22,18,false);
+ builtinHero(renderer,hero.heroIndex,22,18,false,0);
  for(int i=0;i<hero.def().hp;i++){SDL_SetRenderDrawColor(renderer,i<hero.hp?225:75,i<hero.hp?45:55,i<hero.hp?70:60,255);rect(renderer,76+i*24,30,16,14);rect(renderer,80+i*24,26,8,22);}
  if(firePower){SDL_SetRenderDrawColor(renderer,245,145,35,255);rect(renderer,250,27,18,24);rect(renderer,244,34,30,10);}
  if(starTimer>0){SDL_SetRenderDrawColor(renderer,250,215,45,255);rect(renderer,286,27,18,24);rect(renderer,280,34,30,10);}
