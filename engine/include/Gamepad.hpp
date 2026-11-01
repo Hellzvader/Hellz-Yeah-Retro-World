@@ -15,12 +15,20 @@ public:
  void scan(){
   int count=0;SDL_JoystickID* ids=SDL_GetGamepads(&count);
   if(!ids)return;
-  for(int i=0;i<count&&i<MAX_PLAYERS;i++)if(!pads[i])pads[i]=SDL_OpenGamepad(ids[i]);
+  for(auto& p:pads) {
+   if(p && !SDL_GamepadConnected(p)) { SDL_CloseGamepad(p); p=nullptr; }
+  }
+  for(int i=0;i<count;i++) {
+   bool known=false;
+   for(auto* p:pads) if(p && SDL_GetGamepadID(p)==ids[i]) { known=true; break; }
+   if(known) continue;
+   for(auto& p:pads) if(!p) { p=SDL_OpenGamepad(ids[i]); break; }
+  }
   SDL_free(ids);
  }
  void shutdown(){for(auto&p:pads){if(p){SDL_CloseGamepad(p);p=nullptr;}}}
  PadInput read(int player)const{
-  PadInput i{};if(player<0||player>=MAX_PLAYERS||!pads[player])return i;auto*p=pads[player];
+  PadInput i{};if(player<0||player>=MAX_PLAYERS||!pads[player]||!SDL_GamepadConnected(pads[player]))return i;auto*p=pads[player];
   auto b=[&](SDL_GamepadButton x){return SDL_GetGamepadButton(p,x);};
   i.left=b(SDL_GAMEPAD_BUTTON_DPAD_LEFT);i.right=b(SDL_GAMEPAD_BUTTON_DPAD_RIGHT);
   i.up=b(SDL_GAMEPAD_BUTTON_DPAD_UP);i.down=b(SDL_GAMEPAD_BUTTON_DPAD_DOWN);
