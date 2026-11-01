@@ -20,7 +20,8 @@ public:
   auto dot=resolved.find_last_of('.');
   std::string ext=dot==std::string::npos?"":resolved.substr(dot);
   std::transform(ext.begin(),ext.end(),ext.begin(),[](unsigned char ch){return (char)std::tolower(ch);});
-  // SDL core supports BMP. Convert PNG sheets to BMP before packaging.\n  if(ext==".bmp")s=SDL_LoadBMP(resolved.c_str());
+  // SDL core supports BMP. Convert PNG sheets to BMP before packaging.
+  if(ext==".bmp")s=SDL_LoadBMP(resolved.c_str());
   if(!s)return nullptr;
   // BMP strips can use magenta as a transparency key; PNG keeps native alpha.
   if(ext!=".png")SDL_SetSurfaceColorKey(s,true,SDL_MapSurfaceRGB(s,255,0,255));
