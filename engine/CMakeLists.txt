@@ -22,3 +22,12 @@ target_link_libraries(HellzYeahRetroEngine PRIVATE SDL3::SDL3)
 if(MSVC)
   target_compile_options(HellzYeahRetroEngine PRIVATE /W4)
 endif()
+
+# Copy actual imported art into the executable output folder.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/imported")
+  add_custom_command(TARGET HellzYeahRetroEngine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+      "${CMAKE_CURRENT_SOURCE_DIR}/assets/imported"
+      "$<TARGET_FILE_DIR:HellzYeahRetroEngine>/assets/imported"
+  )
+endif()
