@@ -22,7 +22,7 @@ public:
   std::transform(ext.begin(),ext.end(),ext.begin(),[](unsigned char ch){return (char)std::tolower(ch);});
   // SDL core supports BMP. Convert PNG sheets to BMP before packaging.
   if(ext==".bmp")s=SDL_LoadBMP(resolved.c_str());
-  if(!s)return nullptr;
+  if(!s){SDL_Log("Missing sprite BMP: %s (%s)",resolved.c_str(),SDL_GetError());return nullptr;}
   // BMP strips can use magenta as a transparency key; PNG keeps native alpha.
   if(ext!=".png")SDL_SetSurfaceColorKey(s,true,SDL_MapSurfaceRGB(s,255,0,255));
   SDL_Texture*t=SDL_CreateTextureFromSurface(renderer,s);SDL_DestroySurface(s);
