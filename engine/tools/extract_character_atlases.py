@@ -62,17 +62,19 @@ def main():
                 preview.save(previews/f"{who}_poses.png")
                 # The first extracted poses are only a provisional animation.
                 # Never assert that they correspond to actual run/jump poses.
-                for state,n in [("idle",1),("run",run_frames),("jump",1)]:
+                for state,n in [("idle",2 if who=="bowser" else 4 if who=="peach" else 1),("run",run_frames),("jump",2 if who=="bowser" else 1)]:
                     strip=Image.new("RGB",(fw*n,fh),(255,0,255))
                     for j in range(n):
                         x,y,w,h,_=candidates[j%len(candidates)]
                         pose=im.crop((x,y,x+w,y+h))
                         pose.thumbnail((fw,fh),Image.Resampling.NEAREST)
                         strip.paste(pose,(j*fw+(fw-pose.width)//2,fh-pose.height),pose.getchannel("A"))
-                    dest=OUTPUT/"heroes"/f"{who}_{state}.bmp"
+                    dest=OUTPUT/("characters" if who=="peach" else "heroes")/f"{who}_{state}.bmp"
+                    if who=="peach" and state!="idle":
+                        continue
                     dest.parent.mkdir(parents=True,exist_ok=True)
                     strip.save(dest)
-                print(f"{who}: generated provisional idle/run/jump BMP strips; review {who}_poses.png")
+                print(f"{who}: generated provisional manifest-compatible BMP strips; review {who}_poses.png")
     return 0
 
 if __name__=="__main__":
