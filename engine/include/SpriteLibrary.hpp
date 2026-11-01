@@ -20,8 +20,9 @@ public:
   auto dot=resolved.find_last_of('.');
   std::string ext=dot==std::string::npos?"":resolved.substr(dot);
   std::transform(ext.begin(),ext.end(),ext.begin(),[](unsigned char ch){return (char)std::tolower(ch);});
-  // SDL core build uses BMP strips; PNG source sheets are preprocessed into BMP strips by the asset tool.\n  if(ext==".bmp")s=SDL_LoadBMP(resolved.c_str());
-  if(!s)return nullptr;
+  // SDL core supports BMP. Convert PNG sheets to BMP before packaging.
+  if(ext==".bmp")s=SDL_LoadBMP(resolved.c_str());
+  if(!s){SDL_Log("Missing sprite BMP: %s (%s)",resolved.c_str(),SDL_GetError());return nullptr;}
   // BMP strips can use magenta as a transparency key; PNG keeps native alpha.
   if(ext!=".png")SDL_SetSurfaceColorKey(s,true,SDL_MapSurfaceRGB(s,255,0,255));
   SDL_Texture*t=SDL_CreateTextureFromSurface(renderer,s);SDL_DestroySurface(s);
@@ -32,8 +33,9 @@ public:
   int count=std::max(1,clip.frames);int frame=(int)(time*clip.fps)%count;
   SDL_FRect src{(float)(frame*clip.frameW),0.f,(float)clip.frameW,(float)clip.frameH};
   SDL_FRect dst{x,y,w,h};
-  SDL_RenderTextureRotated(renderer,t,&src,&dst,0,nullptr,flip?SDL_FLIP_HORIZONTAL:SDL_FLIP_NONE);
-  return true;
+  float tw=0,th=0;
+  if(!SDL_GetTextureSize(t,&tw,&th)||clip.frameW<=0||clip.frameH<=0||src.x+src.w>tw||src.h>th)return false;
+  return SDL_RenderTextureRotated(renderer,t,&src,&dst,0,nullptr,flip?SDL_FLIP_HORIZONTAL:SDL_FLIP_NONE);
  }
  void clear(){for(auto&p:textures)if(p.second)SDL_DestroyTexture(p.second);textures.clear();}
  ~SpriteLibrary(){clear();}
