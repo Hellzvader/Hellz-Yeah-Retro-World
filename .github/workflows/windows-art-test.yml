@@ -20,11 +20,19 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path package | Out-Null
-          Copy-Item engine/build/Release/HellzYeahRetroEngine.exe package/
+          $exe = Get-ChildItem engine/build -Recurse -Filter HellzYeahRetroEngine.exe | Select-Object -First 1
+          if (-not $exe) { throw "Game executable not produced" }
+          Copy-Item $exe.FullName package/
+          $gameDir = $exe.DirectoryName
           if (Test-Path engine/build/Release/SDL3.dll) { Copy-Item engine/build/Release/SDL3.dll package/ }
-          if (Test-Path engine/build/Release/assets) { Copy-Item engine/build/Release/assets package/ -Recurse }
+          if (Test-Path "$gameDir/assets") { Copy-Item "$gameDir/assets" package/ -Recurse }
+          if (Test-Path engine/assets/imported) {
+            New-Item -ItemType Directory -Force -Path package/assets/imported | Out-Null
+            Copy-Item engine/assets/imported/* package/assets/imported/ -Recurse -Force
+          }
           Get-ChildItem -Path engine/build -Filter SDL3.dll -Recurse | Select-Object -First 1 | ForEach-Object { Copy-Item $_.FullName package/ -Force }
           if (-not (Test-Path package/SDL3.dll)) { throw "Missing SDL3.dll: portable build cannot start" }
+          Write-Host "Packaged executable, SDL3.dll, and available artwork."
       - name: Upload Windows test build
         uses: actions/upload-artifact@v4
         with:
